@@ -20,6 +20,7 @@ export type Database = {
           id: string
           product_id: string | null
           quantity: number
+          ukuran: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           product_id?: string | null
           quantity: number
+          ukuran?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -36,6 +38,7 @@ export type Database = {
           id?: string
           product_id?: string | null
           quantity?: number
+          ukuran?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -49,41 +52,246 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string | null
+          harga: number
+          id: string
+          jumlah: number
+          order_id: string
+          product_id: string
+          ukuran: string
+        }
+        Insert: {
+          created_at?: string | null
+          harga: number
+          id?: string
+          jumlah: number
+          order_id: string
+          product_id: string
+          ukuran: string
+        }
+        Update: {
+          created_at?: string | null
+          harga?: number
+          id?: string
+          jumlah?: number
+          order_id?: string
+          product_id?: string
+          ukuran?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string | null
+          email_pembeli: string | null
+          id: string
+          nama_pembeli: string | null
+          order_number: string
+          payment_method: string | null
+          shipping_address: string | null
+          shipping_method: string | null
+          status: string | null
+          telepon_pembeli: string | null
+          total: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_pembeli?: string | null
+          id?: string
+          nama_pembeli?: string | null
+          order_number: string
+          payment_method?: string | null
+          shipping_address?: string | null
+          shipping_method?: string | null
+          status?: string | null
+          telepon_pembeli?: string | null
+          total: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_pembeli?: string | null
+          id?: string
+          nama_pembeli?: string | null
+          order_number?: string
+          payment_method?: string | null
+          shipping_address?: string | null
+          shipping_method?: string | null
+          status?: string | null
+          telepon_pembeli?: string | null
+          total?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          order_id: string
+          payment_proof: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          order_id: string
+          payment_proof?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          payment_proof?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_sizes: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string
+          stok: number | null
+          ukuran: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id: string
+          stok?: number | null
+          ukuran: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          stok?: number | null
+          ukuran?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sizes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
           created_at: string | null
           description: string | null
+          gambar: string[] | null
           id: string
           image_url: string | null
+          is_active: boolean | null
           name: string
           price: number
           search_vector: unknown | null
           stock_quantity: number | null
+          ukuran: string[] | null
           updated_at: string | null
         }
         Insert: {
           category: string
           created_at?: string | null
           description?: string | null
+          gambar?: string[] | null
           id?: string
           image_url?: string | null
+          is_active?: boolean | null
           name: string
           price: number
           search_vector?: unknown | null
           stock_quantity?: number | null
+          ukuran?: string[] | null
           updated_at?: string | null
         }
         Update: {
           category?: string
           created_at?: string | null
           description?: string | null
+          gambar?: string[] | null
           id?: string
           image_url?: string | null
+          is_active?: boolean | null
           name?: string
           price?: number
           search_vector?: unknown | null
           stock_quantity?: number | null
+          ukuran?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          alamat: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          nama: string | null
+          role: string | null
+          telepon: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          alamat?: string | null
+          created_at?: string | null
+          email?: string | null
+          id: string
+          nama?: string | null
+          role?: string | null
+          telepon?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          alamat?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nama?: string | null
+          role?: string | null
+          telepon?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -93,6 +301,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_category_breakdown: {
         Args: Record<PropertyKey, never>
         Returns: {
