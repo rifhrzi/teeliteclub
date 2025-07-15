@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter, Phone, Mail, MapPin } from "lucide-react";
 
+// Footer component for consistent layout across all pages
 export const Footer = () => {
   return (
     <footer className="bg-background border-t py-16">
