@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { ShoppingCart, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/layout/Header";
 import { ProductCard } from "@/components/shop/ProductCard";
 import { ProductFilters } from "@/components/shop/ProductFilters";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 
 interface Product {
@@ -28,11 +36,11 @@ interface FilterState {
 }
 
 const Shop = () => {
+  const { user, profile, signOut } = useAuth();
+  const { addToCart, getCartItemsCount } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const { addToCart } = useCart();
   const [filters, setFilters] = useState<FilterState>({
     categories: [],
     sizes: [],
@@ -45,7 +53,7 @@ const Shop = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [products, searchQuery, filters]);
+  }, [products, filters]);
 
   const fetchProducts = async () => {
     try {
@@ -69,14 +77,6 @@ const Shop = () => {
 
   const applyFilters = () => {
     let filtered = [...products];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
 
     // Category filter
     if (filters.categories.length > 0) {
@@ -112,10 +112,9 @@ const Shop = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             <p className="text-muted-foreground">Loading products...</p>
           </div>
         </div>
@@ -125,7 +124,72 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onSearchChange={setSearchQuery} />
+      {/* Header */}
+      <header className="border-b bg-background">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Link to="/" className="text-2xl font-bold text-foreground">
+              Teelite
+            </Link>
+
+            {/* Right side - Shop, Cart, User */}
+            <div className="flex items-center space-x-6">
+              <Link to="/shop" className="text-lg font-medium text-primary">
+                Shop
+              </Link>
+
+              {/* Cart */}
+              <Button variant="ghost" size="icon" className="relative" asChild>
+                <Link to="/cart">
+                  <ShoppingCart className="h-6 w-6" />
+                  {getCartItemsCount() > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
+                      {getCartItemsCount()}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+
+              {/* User Account */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <User className="h-6 w-6" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {user ? (
+                    <>
+                      <DropdownMenuItem disabled>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{profile?.nama || 'User'}</span>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/account">My Account</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/orders">My Orders</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={signOut} className="text-destructive">
+                        Logout
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <DropdownMenuItem asChild>
+                      <Link to="/auth">Login / Register</Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
       <div className="bg-muted/50 border-b">
@@ -187,7 +251,6 @@ const Shop = () => {
                     <Button 
                       variant="outline" 
                       onClick={() => {
-                        setSearchQuery("");
                         setFilters({
                           categories: [],
                           sizes: [],
