@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -11,7 +12,8 @@ export function AdminRoute({ children }: AdminRouteProps) {
 
   console.log('AdminRoute - user:', user?.id, 'profile:', profile, 'loading:', loading);
 
-  if (loading) {
+  // Show loading while auth is loading OR while we have a user but no profile yet
+  if (loading || (user && !profile)) {
     console.log('AdminRoute - Still loading...');
     return (
       <div className="min-h-screen flex items-center justify-center">
