@@ -30,7 +30,7 @@ export function HeroSection() {
           <div className="relative">
             <div className="aspect-square rounded-2xl bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center">
               <div className="text-6xl lg:text-8xl font-bold text-primary-foreground/30">
-                TeeElite
+                Teelite
               </div>
             </div>
             {/* Decorative elements */}

@@ -5,8 +5,8 @@
 INSERT INTO public.profiles (id, email, nama, role)
 VALUES (
   '00000000-0000-0000-0000-000000000001', 
-  'admin@teeelite.com', 
-  'Admin TeeElite', 
+  'admin@teelite.com', 
+  'Admin Teelite', 
   'admin'
 ) ON CONFLICT (id) DO UPDATE SET
   email = EXCLUDED.email,
