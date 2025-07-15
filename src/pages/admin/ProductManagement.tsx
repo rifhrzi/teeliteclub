@@ -70,7 +70,7 @@ const ProductManagement = () => {
     ukuran: ["S", "M", "L", "XL", "XXL"]
   });
 
-  const categories = ["Pria", "Wanita", "Anak"];
+  const categories = ["Men", "Women", "Accessories"];
 
   useEffect(() => {
     loadProducts();
