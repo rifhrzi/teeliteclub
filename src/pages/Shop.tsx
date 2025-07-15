@@ -127,92 +127,84 @@ const Shop = () => {
     <div className="min-h-screen bg-background">
       <Header onSearchChange={setSearchQuery} />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-4 gap-6">
+      {/* Hero Section */}
+      <div className="bg-muted/50 border-b">
+        <div className="container mx-auto px-4 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-foreground mb-4">Shop</h1>
+            <p className="text-lg text-muted-foreground">Discover our premium collection</p>
+          </div>
+        </div>
+      </div>
+
+      <main className="container mx-auto px-4 py-12">
+        <div className="grid lg:grid-cols-5 gap-8">
           {/* Filters Sidebar */}
           <div className="lg:col-span-1">
-            <ProductFilters onFiltersChange={setFilters} />
+            <div className="sticky top-4">
+              <ProductFilters onFiltersChange={setFilters} />
+            </div>
           </div>
 
-          {/* Products Grid */}
-          <div className="lg:col-span-3 space-y-6">
+          {/* Products Section */}
+          <div className="lg:col-span-4 space-y-8">
             {/* Results Header */}
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-foreground">
-                All Products
-              </h2>
-              <p className="text-muted-foreground">
-                {filteredProducts.length} products found
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b">
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">Products</h2>
+                <p className="text-muted-foreground mt-1">
+                  {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
+                </p>
+              </div>
             </div>
 
             {/* Products Grid */}
-            {filteredProducts.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    onViewDetails={handleViewDetails}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <p className="text-lg text-muted-foreground mb-4">
-                    No products found
-                  </p>
-                  <Button onClick={() => {
-                    setSearchQuery("");
-                    setFilters({
-                      categories: [],
-                      sizes: [],
-                      priceRange: [0, 1000000],
-                    });
-                  }}>
-                    Reset Filters
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            <div className="space-y-8">
+              {filteredProducts.length > 0 ? (
+                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="group">
+                      <ProductCard
+                        product={product}
+                        onAddToCart={handleAddToCart}
+                        onViewDetails={handleViewDetails}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-24">
+                  <div className="text-center space-y-4 max-w-md">
+                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-foreground">No products found</h3>
+                    <p className="text-muted-foreground">
+                      Try adjusting your search or filter criteria to find what you're looking for.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setSearchQuery("");
+                        setFilters({
+                          categories: [],
+                          sizes: [],
+                          priceRange: [0, 1000000],
+                        });
+                      }}
+                      className="mt-4"
+                    >
+                      Clear all filters
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-muted py-8 mt-16">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-bold text-lg mb-4">Teelite</h3>
-              <p className="text-muted-foreground">
-                Premium quality fashion with affordable prices for everyone.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Contact</h4>
-              <div className="space-y-2 text-muted-foreground">
-                <p>Email: info@teelite.com</p>
-                <p>Phone: +62 812-3456-7890</p>
-                <p>WhatsApp: +62 812-3456-7890</p>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Services</h4>
-              <div className="space-y-2 text-muted-foreground">
-                <p>Size Guide</p>
-                <p>Return Policy</p>
-                <p>Shipping & Payment</p>
-              </div>
-            </div>
-          </div>
-          <div className="border-t mt-8 pt-4 text-center text-muted-foreground">
-            <p>&copy; 2024 Teelite. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
