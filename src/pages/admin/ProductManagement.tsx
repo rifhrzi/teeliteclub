@@ -69,6 +69,8 @@ const ProductManagement = () => {
     is_active: true,
     ukuran: ["S", "M", "L", "XL", "XXL"]
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const categories = ["Men", "Women", "Accessories"];
 
@@ -129,6 +131,8 @@ const ProductManagement = () => {
       ukuran: ["S", "M", "L", "XL", "XXL"]
     });
     setEditingProduct(null);
+    setSelectedFile(null);
+    setUploading(false);
   };
 
   const openEditDialog = (product: Product) => {
@@ -146,6 +150,48 @@ const ProductManagement = () => {
     setIsDialogOpen(true);
   };
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Gagal mengunggah gambar');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('Ukuran file maksimal 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error('File harus berupa gambar');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -155,12 +201,22 @@ const ProductManagement = () => {
     }
 
     try {
+      let imageUrl = formData.image_url;
+
+      // Upload new image if selected
+      if (selectedFile) {
+        const uploadedUrl = await uploadImage(selectedFile);
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        }
+      }
+
       const productData = {
         name: formData.name,
         description: formData.description || null,
         price: parseFloat(formData.price),
         category: formData.category,
-        image_url: formData.image_url || null,
+        image_url: imageUrl || null,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
         is_active: formData.is_active,
         ukuran: formData.ukuran
@@ -329,14 +385,56 @@ const ProductManagement = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="image_url">URL Gambar</Label>
-                  <Input
-                    id="image_url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="image_upload">Upload Gambar</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="image_upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                      />
+                      {selectedFile && (
+                        <span className="text-sm text-muted-foreground">
+                          {selectedFile.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>atau</span>
+                    <div className="h-px bg-border flex-1" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="image_url">URL Gambar</Label>
+                    <Input
+                      id="image_url"
+                      value={formData.image_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                  
+                  {(selectedFile || formData.image_url) && (
+                    <div className="space-y-2">
+                      <Label>Preview</Label>
+                      <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted">
+                        <img
+                          src={selectedFile ? URL.createObjectURL(selectedFile) : formData.image_url}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder.svg";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -352,8 +450,17 @@ const ProductManagement = () => {
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Batal
                   </Button>
-                  <Button type="submit">
-                    {editingProduct ? 'Perbarui' : 'Tambah'} Produk
+                  <Button type="submit" disabled={uploading}>
+                    {uploading ? (
+                      <>
+                        <Upload className="h-4 w-4 mr-2 animate-spin" />
+                        Mengunggah...
+                      </>
+                    ) : (
+                      <>
+                        {editingProduct ? 'Perbarui' : 'Tambah'} Produk
+                      </>
+                    )}
                   </Button>
                 </DialogFooter>
               </form>
