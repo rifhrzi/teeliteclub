@@ -108,33 +108,6 @@ export function ProductCard({ product }: ProductCardProps) {
           </p>
         </div>
 
-        <div className="space-y-2">
-          {/* Size Selection */}
-          {product.ukuran && product.ukuran.length > 0 && (
-            <Select value={selectedSize} onValueChange={setSelectedSize}>
-              <SelectTrigger className="w-full h-9">
-                <SelectValue placeholder="Select size" />
-              </SelectTrigger>
-              <SelectContent>
-                {product.ukuran.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          <Button
-            onClick={handleAddToCart}
-            disabled={product.stock_quantity === 0 || (product.ukuran && product.ukuran.length > 0 && !selectedSize)}
-            className="w-full"
-            size="sm"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            {product.stock_quantity === 0 ? "Out of Stock" : "Add to Cart"}
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
