@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ShoppingCart, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "@/components/shop/ProductCard";
-import { ProductFilters } from "@/components/shop/ProductFilters";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/layout/Footer";
@@ -31,31 +31,17 @@ interface Product {
   is_active?: boolean;
 }
 
-interface FilterState {
-  categories: string[];
-  sizes: string[];
-  priceRange: [number, number];
-}
 
 const Shop = () => {
   const { user, profile, signOut } = useAuth();
   const { getCartItemsCount } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<FilterState>({
-    categories: [],
-    sizes: [],
-    priceRange: [0, 1000000],
-  });
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [products, filters]);
 
   const fetchProducts = async () => {
     try {
@@ -77,25 +63,6 @@ const Shop = () => {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...products];
-
-    // Category filter
-    if (filters.categories.length > 0) {
-      filtered = filtered.filter(product =>
-        filters.categories.some(category =>
-          product.category.toLowerCase().includes(category.toLowerCase())
-        )
-      );
-    }
-
-    // Price range filter
-    filtered = filtered.filter(product =>
-      product.price >= filters.priceRange[0] && product.price <= filters.priceRange[1]
-    );
-
-    setFilteredProducts(filtered);
-  };
 
 
   if (loading) {
@@ -191,65 +158,42 @@ const Shop = () => {
       </div>
 
       <main className="container mx-auto px-4 py-12">
-        <div className="grid lg:grid-cols-5 gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-4">
-              <ProductFilters onFiltersChange={setFilters} />
+        <div className="space-y-8">
+          {/* Results Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b">
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">Products</h2>
+              <p className="text-muted-foreground mt-1">
+                {products.length} {products.length === 1 ? 'product' : 'products'} found
+              </p>
             </div>
           </div>
 
-          {/* Products Section */}
-          <div className="lg:col-span-4 space-y-8">
-            {/* Results Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b">
-              <div>
-                <h2 className="text-2xl font-semibold text-foreground">Products</h2>
-                <p className="text-muted-foreground mt-1">
-                  {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
-                </p>
+          {/* Products Grid */}
+          <div className="space-y-8">
+            {products.length > 0 ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 {products.map((product) => (
+                   <div key={product.id} className="group">
+                     <ProductCard product={product} />
+                   </div>
+                 ))}
               </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="space-y-8">
-              {filteredProducts.length > 0 ? (
-                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                   {filteredProducts.map((product) => (
-                     <div key={product.id} className="group">
-                       <ProductCard product={product} />
-                     </div>
-                   ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-24">
-                  <div className="text-center space-y-4 max-w-md">
-                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground">No products found</h3>
-                    <p className="text-muted-foreground">
-                      Try adjusting your search or filter criteria to find what you're looking for.
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setFilters({
-                          categories: [],
-                          sizes: [],
-                          priceRange: [0, 1000000],
-                        });
-                      }}
-                      className="mt-4"
-                    >
-                      Clear all filters
-                    </Button>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-24">
+                <div className="text-center space-y-4 max-w-md">
+                  <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                   </div>
+                  <h3 className="text-xl font-semibold text-foreground">No products found</h3>
+                  <p className="text-muted-foreground">
+                    No products are currently available.
+                  </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </main>
