@@ -96,6 +96,31 @@ const Checkout = () => {
 
       if (itemsError) throw itemsError;
 
+      // Update product stock quantities
+      for (const item of items) {
+        const { data: product, error: productError } = await supabase
+          .from('products')
+          .select('stock_quantity')
+          .eq('id', item.product_id)
+          .single();
+
+        if (productError) {
+          console.error('Error fetching product:', productError);
+          continue;
+        }
+
+        const newStock = Math.max(0, product.stock_quantity - item.quantity);
+        
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ stock_quantity: newStock })
+          .eq('id', item.product_id);
+
+        if (updateError) {
+          console.error('Error updating stock:', updateError);
+        }
+      }
+
       // Clear cart
       await clearCart();
 
