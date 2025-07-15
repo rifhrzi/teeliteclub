@@ -1,218 +1,158 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/layout/Header";
-import { HeroSection } from "@/components/shop/HeroSection";
-import { ProductCard } from "@/components/shop/ProductCard";
-import { ProductFilters } from "@/components/shop/ProductFilters";
+import { Link } from "react-router-dom";
+import { ShoppingCart, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
-import { toast } from "sonner";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  image_url?: string;
-  gambar?: string[];
-  stock_quantity?: number;
-  is_active?: boolean;
-  description?: string;
-}
-
-interface FilterState {
-  categories: string[];
-  sizes: string[];
-  priceRange: [number, number];
-}
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const { addToCart } = useCart();
-  const [filters, setFilters] = useState<FilterState>({
-    categories: [],
-    sizes: [],
-    priceRange: [0, 1000000],
-  });
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [products, searchQuery, filters]);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      setProducts(data || []);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      toast.error("Gagal memuat produk");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyFilters = () => {
-    let filtered = [...products];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Category filter
-    if (filters.categories.length > 0) {
-      filtered = filtered.filter(product =>
-        filters.categories.some(category =>
-          product.category.toLowerCase().includes(category.toLowerCase())
-        )
-      );
-    }
-
-    // Price range filter
-    filtered = filtered.filter(product =>
-      product.price >= filters.priceRange[0] && product.price <= filters.priceRange[1]
-    );
-
-    setFilteredProducts(filtered);
-  };
-
-  const handleAddToCart = async (productId: string) => {
-    try {
-      // For now, add with default size M
-      await addToCart(productId, 'M', 1);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-    }
-  };
-
-  const handleViewDetails = (productId: string) => {
-    // Navigate to product detail page
-    window.location.href = `/product/${productId}`;
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Memuat produk...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const { user, profile, signOut } = useAuth();
+  const { getCartItemsCount } = useCart();
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header onSearchChange={setSearchQuery} />
-      
-      <HeroSection />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="border-b bg-background">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Link to="/" className="text-2xl font-bold text-foreground">
+              Teelite
+            </Link>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
-            <ProductFilters onFiltersChange={setFilters} />
-          </div>
+            {/* Right side - Shop, Cart, User */}
+            <div className="flex items-center space-x-6">
+              <Link to="#products" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+                Shop
+              </Link>
 
-          {/* Products Grid */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Results Header */}
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-foreground">
-                Semua Produk
-              </h2>
-              <p className="text-muted-foreground">
-                {filteredProducts.length} produk ditemukan
-              </p>
-            </div>
+              {/* Cart */}
+              <Button variant="ghost" size="icon" className="relative" asChild>
+                <Link to="/cart">
+                  <ShoppingCart className="h-6 w-6" />
+                  {getCartItemsCount() > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
+                      {getCartItemsCount()}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
 
-            {/* Products Grid */}
-            {filteredProducts.length > 0 ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    onViewDetails={handleViewDetails}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <p className="text-lg text-muted-foreground mb-4">
-                    Tidak ada produk yang ditemukan
-                  </p>
-                  <Button onClick={() => {
-                    setSearchQuery("");
-                    setFilters({
-                      categories: [],
-                      sizes: [],
-                      priceRange: [0, 1000000],
-                    });
-                  }}>
-                    Reset Filter
+              {/* User Account */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <User className="h-6 w-6" />
                   </Button>
-                </CardContent>
-              </Card>
-            )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {user ? (
+                    <>
+                      <DropdownMenuItem disabled>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{profile?.nama || 'User'}</span>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/account">My Account</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/orders">My Orders</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={signOut} className="text-destructive">
+                        Logout
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <DropdownMenuItem asChild>
+                      <Link to="/auth">Login / Register</Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="flex-1 bg-muted flex items-center justify-center">
+        <div className="text-center py-32">
+          <Button 
+            size="lg" 
+            className="px-12 py-6 text-lg font-medium"
+            asChild
+          >
+            <Link to="#products">Shop Now</Link>
+          </Button>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-muted py-8 mt-16">
+      {/* Products Section - Hidden by default, will be shown when Shop Now is clicked */}
+      <section id="products" className="min-h-screen bg-background py-16">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-bold text-lg mb-4">TeeElite</h3>
-              <p className="text-muted-foreground">
-                Fashion berkualitas dengan harga terjangkau untuk semua kalangan.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Kontak</h4>
-              <div className="space-y-2 text-muted-foreground">
-                <p>Email: info@teeelite.com</p>
-                <p>Phone: +62 812-3456-7890</p>
-                <p>WhatsApp: +62 812-3456-7890</p>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Layanan</h4>
-              <div className="space-y-2 text-muted-foreground">
-                <p>Panduan Ukuran</p>
-                <p>Kebijakan Return</p>
-                <p>Pengiriman & Pembayaran</p>
-              </div>
-            </div>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-foreground mb-4">Our Products</h2>
+            <p className="text-lg text-muted-foreground">Discover our latest collection</p>
           </div>
-          <div className="border-t mt-8 pt-4 text-center text-muted-foreground">
-            <p>&copy; 2024 TeeElite. All rights reserved.</p>
+          
+          {/* Product grid will be populated here */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Placeholder for products - you can add real products later */}
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-card rounded-lg border p-6 text-center">
+                <div className="bg-muted h-48 rounded-lg mb-4"></div>
+                <h3 className="font-semibold mb-2">Product {i}</h3>
+                <p className="text-muted-foreground mb-4">IDR 150,000</p>
+                <Button className="w-full">Add to Cart</Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-background border-t py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h3 className="text-3xl font-bold text-foreground mb-8">Footer</h3>
+            <div className="grid md:grid-cols-3 gap-8 text-left max-w-4xl mx-auto">
+              <div>
+                <h4 className="font-semibold mb-4 text-foreground">About Teelite</h4>
+                <p className="text-muted-foreground">
+                  Premium quality fashion with affordable prices for everyone.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4 text-foreground">Contact</h4>
+                <div className="space-y-2 text-muted-foreground">
+                  <p>Email: info@teelite.com</p>
+                  <p>Phone: +62 812-3456-7890</p>
+                  <p>WhatsApp: +62 812-3456-7890</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4 text-foreground">Services</h4>
+                <div className="space-y-2 text-muted-foreground">
+                  <p>Size Guide</p>
+                  <p>Return Policy</p>
+                  <p>Shipping & Payment</p>
+                </div>
+              </div>
+            </div>
+            <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
+              <p>&copy; 2024 Teelite. All rights reserved.</p>
+            </div>
           </div>
         </div>
       </footer>
