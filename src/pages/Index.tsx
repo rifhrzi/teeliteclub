@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import heroImage from "@/assets/hero-image.jpg";
 import { ShoppingCart, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,15 +88,29 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <main className="flex-1 bg-muted flex items-center justify-center">
-        <div className="text-center py-32">
-          <Button 
-            size="lg" 
-            className="px-12 py-6 text-lg font-medium"
-            asChild
-          >
-            <Link to="/shop">Shop Now</Link>
-          </Button>
+      <main className="flex-1 relative overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        >
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+        <div className="relative z-10 flex items-center justify-center min-h-full">
+          <div className="text-center py-32 text-white">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in">
+              Welcome to Teelite
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-white/90 animate-fade-in">
+              Discover premium fashion for the whole family
+            </p>
+            <Button 
+              size="lg" 
+              className="px-12 py-6 text-lg font-medium bg-white text-black hover:bg-white/90 animate-scale-in"
+              asChild
+            >
+              <Link to="/shop">Shop Now</Link>
+            </Button>
+          </div>
         </div>
       </main>
 
