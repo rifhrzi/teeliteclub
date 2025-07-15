@@ -3,7 +3,8 @@ import { Facebook, Instagram, Twitter, Phone, Mail, MapPin } from "lucide-react"
 
 // Footer component for consistent layout across all pages
 export const Footer = () => {
-  return <footer className="bg-background border-t py-16">
+  return (
+    <footer className="bg-background border-t py-16">
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -45,7 +46,15 @@ export const Footer = () => {
           </div>
 
           {/* Customer Service */}
-          
+          <div className="space-y-4">
+            <h4 className="font-semibold text-foreground">Customer Service</h4>
+            <div className="space-y-2 text-muted-foreground text-sm">
+              <p>Size Guide</p>
+              <p>Return Policy</p>
+              <p>Shipping & Payment</p>
+              <p>FAQ</p>
+            </div>
+          </div>
 
           {/* Contact Info */}
           <div className="space-y-4">
@@ -74,5 +83,6 @@ export const Footer = () => {
           </p>
         </div>
       </div>
-    </footer>;
+    </footer>
+  );
 };
