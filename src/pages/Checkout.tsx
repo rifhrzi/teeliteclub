@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { Footer } from "@/components/layout/Footer";
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -292,6 +293,8 @@ const Checkout = () => {
           </Card>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };

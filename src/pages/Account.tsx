@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Footer } from "@/components/layout/Footer";
 
 interface Order {
   id: string;
@@ -230,6 +231,8 @@ const Account = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <Footer />
     </div>
   );
 };

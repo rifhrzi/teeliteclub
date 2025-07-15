@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Footer } from "@/components/layout/Footer";
 
 const Index = () => {
   const { user, profile, signOut } = useAuth();
@@ -98,41 +99,7 @@ const Index = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-background border-t py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <h3 className="text-3xl font-bold text-foreground mb-8">Footer</h3>
-            <div className="grid md:grid-cols-3 gap-8 text-left max-w-4xl mx-auto">
-              <div>
-                <h4 className="font-semibold mb-4 text-foreground">About Teelite</h4>
-                <p className="text-muted-foreground">
-                  Premium quality fashion with affordable prices for everyone.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-4 text-foreground">Contact</h4>
-                <div className="space-y-2 text-muted-foreground">
-                  <p>Email: info@teelite.com</p>
-                  <p>Phone: +62 812-3456-7890</p>
-                  <p>WhatsApp: +62 812-3456-7890</p>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-4 text-foreground">Services</h4>
-                <div className="space-y-2 text-muted-foreground">
-                  <p>Size Guide</p>
-                  <p>Return Policy</p>
-                  <p>Shipping & Payment</p>
-                </div>
-              </div>
-            </div>
-            <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
-              <p>&copy; 2024 Teelite. All rights reserved.</p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, ShoppingCart, Package } from "lucide-react";
+import { Footer } from "@/components/layout/Footer";
 
 interface Product {
   id: string;
@@ -254,6 +255,8 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };

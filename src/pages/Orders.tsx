@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Package, Calendar, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { Footer } from "@/components/layout/Footer";
 
 interface OrderItem {
   id: string;
@@ -237,6 +238,8 @@ const Orders = () => {
           </div>
         )}
       </div>
+      
+      <Footer />
     </div>
   );
 };

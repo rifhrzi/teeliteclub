@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Footer } from "@/components/layout/Footer";
 
 const Cart = () => {
   const { items, loading, updateQuantity, removeFromCart, getCartTotal, getCartItemsCount } = useCart();
@@ -206,6 +207,8 @@ const Cart = () => {
           </div>
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };

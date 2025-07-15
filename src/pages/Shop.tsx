@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/shop/ProductCard";
 import { ProductFilters } from "@/components/shop/ProductFilters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Footer } from "@/components/layout/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import {
@@ -252,6 +253,8 @@ const Shop = () => {
           </div>
         </div>
       </main>
+      
+      <Footer />
     </div>
   );
 };
