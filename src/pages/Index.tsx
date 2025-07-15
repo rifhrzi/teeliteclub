@@ -29,7 +29,7 @@ const Index = () => {
 
             {/* Right side - Shop, Cart, User */}
             <div className="flex items-center space-x-6">
-              <Link to="#products" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+              <Link to="/shop" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
                 Shop
               </Link>
 
@@ -93,33 +93,10 @@ const Index = () => {
             className="px-12 py-6 text-lg font-medium"
             asChild
           >
-            <Link to="#products">Shop Now</Link>
+            <Link to="/shop">Shop Now</Link>
           </Button>
         </div>
       </main>
-
-      {/* Products Section - Hidden by default, will be shown when Shop Now is clicked */}
-      <section id="products" className="min-h-screen bg-background py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">Our Products</h2>
-            <p className="text-lg text-muted-foreground">Discover our latest collection</p>
-          </div>
-          
-          {/* Product grid will be populated here */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Placeholder for products - you can add real products later */}
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card rounded-lg border p-6 text-center">
-                <div className="bg-muted h-48 rounded-lg mb-4"></div>
-                <h3 className="font-semibold mb-2">Product {i}</h3>
-                <p className="text-muted-foreground mb-4">IDR 150,000</p>
-                <Button className="w-full">Add to Cart</Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="bg-background border-t py-16">
