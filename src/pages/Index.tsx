@@ -7,6 +7,7 @@ import { ProductFilters } from "@/components/shop/ProductFilters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 
 interface Product {
@@ -32,6 +33,7 @@ const Index = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { addToCart } = useCart();
   const [filters, setFilters] = useState<FilterState>({
     categories: [],
     sizes: [],
@@ -95,10 +97,12 @@ const Index = () => {
   };
 
   const handleAddToCart = async (productId: string) => {
-    // For now, just show a toast. Will implement cart functionality later
-    toast.success("Produk ditambahkan ke keranjang!", {
-      description: "Silakan login untuk melanjutkan checkout",
-    });
+    try {
+      // For now, add with default size M
+      await addToCart(productId, 'M', 1);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
   };
 
   const handleViewDetails = (productId: string) => {

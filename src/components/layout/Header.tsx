@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ShoppingCart, User, Menu } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,17 +7,22 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
-  cartItemsCount?: number;
   onSearchChange?: (query: string) => void;
 }
 
-export function Header({ cartItemsCount = 0, onSearchChange }: HeaderProps) {
+export function Header({ onSearchChange }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { user, profile, signOut } = useAuth();
+  const { getCartItemsCount } = useCart();
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,20 +41,22 @@ export function Header({ cartItemsCount = 0, onSearchChange }: HeaderProps) {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-primary">TeeElite</h1>
-          </div>
+        <div className="flex items-center space-x-4">
+          <Link to="/" className="text-2xl font-bold text-primary">
+            TeeElite
+          </Link>
+        </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             {navigationItems.map((item) => (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
+                to={item.href}
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -70,13 +77,15 @@ export function Header({ cartItemsCount = 0, onSearchChange }: HeaderProps) {
           {/* Right side actions */}
           <div className="flex items-center space-x-2">
             {/* Cart */}
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {cartItemsCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
-                  {cartItemsCount}
-                </Badge>
-              )}
+            <Button variant="ghost" size="icon" className="relative" asChild>
+              <Link to="/cart">
+                <ShoppingCart className="h-5 w-5" />
+                {getCartItemsCount() > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
+                    {getCartItemsCount()}
+                  </Badge>
+                )}
+              </Link>
             </Button>
 
             {/* User Account */}
@@ -87,15 +96,32 @@ export function Header({ cartItemsCount = 0, onSearchChange }: HeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <a href="/auth">Masuk / Daftar</a>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <a href="/account">Akun Saya</a>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <a href="/orders">Pesanan Saya</a>
-                </DropdownMenuItem>
+                {user ? (
+                  <>
+                    <DropdownMenuItem disabled>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{profile?.nama || 'User'}</span>
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/account">Akun Saya</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders">Pesanan Saya</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut} className="text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem asChild>
+                    <Link to="/auth">Masuk / Daftar</Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -109,13 +135,13 @@ export function Header({ cartItemsCount = 0, onSearchChange }: HeaderProps) {
               <SheetContent side="right">
                 <nav className="flex flex-col space-y-4 mt-8">
                   {navigationItems.map((item) => (
-                    <a
+                    <Link
                       key={item.label}
-                      href={item.href}
+                      to={item.href}
                       className="text-lg font-medium text-foreground hover:text-primary transition-colors"
                     >
                       {item.label}
-                    </a>
+                    </Link>
                   ))}
                 </nav>
               </SheetContent>
