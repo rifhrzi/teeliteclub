@@ -15,6 +15,7 @@ import Orders from "./pages/admin/Orders";
 import Users from "./pages/admin/Users";
 import Reports from "./pages/admin/Reports";
 import Shop from "./pages/Shop";
+import ProductDetail from "./pages/ProductDetail";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/shop" element={<Shop />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/account" element={<Account />} />

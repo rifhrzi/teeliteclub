@@ -20,13 +20,14 @@ import { toast } from "sonner";
 interface Product {
   id: string;
   name: string;
+  description?: string;
   price: number;
   category: string;
   image_url?: string;
   gambar?: string[];
-  stock_quantity?: number;
+  stock_quantity: number;
+  ukuran?: string[];
   is_active?: boolean;
-  description?: string;
 }
 
 interface FilterState {
@@ -37,7 +38,7 @@ interface FilterState {
 
 const Shop = () => {
   const { user, profile, signOut } = useAuth();
-  const { addToCart, getCartItemsCount } = useCart();
+  const { getCartItemsCount } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,19 +96,6 @@ const Shop = () => {
     setFilteredProducts(filtered);
   };
 
-  const handleAddToCart = async (productId: string) => {
-    try {
-      // For now, add with default size M
-      await addToCart(productId, 'M', 1);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-    }
-  };
-
-  const handleViewDetails = (productId: string) => {
-    // Navigate to product detail page
-    window.location.href = `/product/${productId}`;
-  };
 
   if (loading) {
     return (
@@ -226,15 +214,11 @@ const Shop = () => {
             <div className="space-y-8">
               {filteredProducts.length > 0 ? (
                 <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filteredProducts.map((product) => (
-                    <div key={product.id} className="group">
-                      <ProductCard
-                        product={product}
-                        onAddToCart={handleAddToCart}
-                        onViewDetails={handleViewDetails}
-                      />
-                    </div>
-                  ))}
+                   {filteredProducts.map((product) => (
+                     <div key={product.id} className="group">
+                       <ProductCard product={product} />
+                     </div>
+                   ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-24">
