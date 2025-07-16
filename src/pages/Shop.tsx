@@ -137,9 +137,7 @@ const Shop = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b">
             <div>
               <h2 className="text-2xl font-medium text-foreground">Products</h2>
-              <p className="text-muted-foreground mt-1">
-                {products.length} {products.length === 1 ? 'product' : 'products'} found
-              </p>
+              
             </div>
           </div>
 
