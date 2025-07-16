@@ -19,7 +19,7 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				anton: ["Anton", "sans-serif"],
+				etna: ["Etna Sans Serif", "serif"],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
