@@ -40,8 +40,59 @@ export function Header({ onSearchChange }: HeaderProps) {
     <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Empty space for symmetry */}
-          <div className="flex items-center space-x-4"></div>
+          {/* Left side - Burger menu */}
+          <div className="flex items-center">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <nav className="flex flex-col space-y-4 mt-8">
+                  {navigationItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="text-lg font-medium hover:text-muted-foreground transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                  
+                  <div className="border-t pt-4 mt-8">
+                    {user ? (
+                      <>
+                        <div className="mb-4">
+                          <p className="font-medium">{profile?.nama || 'User'}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                        <Link to="/account" className="block py-2 text-lg font-medium hover:text-muted-foreground transition-colors">
+                          Akun Saya
+                        </Link>
+                        <Link to="/orders" className="block py-2 text-lg font-medium hover:text-muted-foreground transition-colors">
+                          Pesanan Saya
+                        </Link>
+                        <Button onClick={signOut} variant="ghost" className="w-full justify-start p-2 h-auto text-lg font-medium text-destructive hover:text-destructive/80">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Logout
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Link to="/auth" className="block py-2 text-lg font-medium hover:text-muted-foreground transition-colors">
+                          Login
+                        </Link>
+                        <Link to="/auth" className="block py-2 text-lg font-medium hover:text-muted-foreground transition-colors">
+                          Register
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
           
           {/* Logo - Centered */}
           <Link to="/" className="flex flex-col items-center text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider leading-tight">
@@ -49,9 +100,8 @@ export function Header({ onSearchChange }: HeaderProps) {
             <span>CLUB</span>
           </Link>
 
-          {/* Right side actions */}
-          <div className="flex items-center space-x-2">
-            {/* Cart */}
+          {/* Right side - Cart only */}
+          <div className="flex items-center">
             <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
               <Link to="/cart">
                 <ShoppingCart className="h-5 w-5" />
@@ -62,65 +112,6 @@ export function Header({ onSearchChange }: HeaderProps) {
                 )}
               </Link>
             </Button>
-
-            {/* User Account */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {user ? (
-                  <>
-                    <DropdownMenuItem disabled>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{profile?.nama || 'User'}</span>
-                        <span className="text-xs text-muted-foreground">{user.email}</span>
-                      </div>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/account">Akun Saya</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/orders">Pesanan Saya</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut} className="text-destructive">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <DropdownMenuItem asChild>
-                    <Link to="/auth">Masuk / Daftar</Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Mobile menu */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right">
-                <nav className="flex flex-col space-y-4 mt-8">
-                  {navigationItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.href}
-                      className="text-lg font-medium text-[hsl(var(--header-footer-foreground))] hover:text-[hsl(var(--header-footer-foreground))]/80 transition-colors"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </nav>
-              </SheetContent>
-            </Sheet>
           </div>
         </div>
       </div>
