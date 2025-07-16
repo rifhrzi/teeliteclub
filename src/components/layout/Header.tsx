@@ -27,19 +27,7 @@ export function Header({
     e.preventDefault();
     onSearchChange?.(searchQuery);
   };
-  const navigationItems = [{
-    label: "Semua Produk",
-    href: "/"
-  }, {
-    label: "Pria",
-    href: "/kategori/pria"
-  }, {
-    label: "Wanita",
-    href: "/kategori/wanita"
-  }, {
-    label: "Anak",
-    href: "/kategori/anak"
-  }];
+  const navigationItems = [];
   return <header className="bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
       <div className="container mx-auto px-4 py-px">
         <div className="flex h-16 items-center justify-between my-[8px]">
