@@ -26,7 +26,7 @@ const Index = () => {
 
             {/* Right side - Shop, Cart, User */}
             <div className="flex items-center space-x-6">
-              <Link to="/shop" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+              <Link to="/shop" className="text-lg font-medium text-dark-blue hover:text-primary transition-colors">
                 Shop
               </Link>
 
@@ -87,7 +87,7 @@ const Index = () => {
           <div className="text-center text-dark-blue py-[200px]">
             
             
-            <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-white text-white bg-transparent hover:bg-white hover:text-black animate-scale-in" asChild>
+            <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-dark-blue text-dark-blue bg-transparent hover:bg-dark-blue hover:text-white animate-scale-in" asChild>
               <Link to="/shop">Shop Now</Link>
             </Button>
           </div>
