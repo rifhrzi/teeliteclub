@@ -81,7 +81,7 @@ const Index = () => {
         <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{
         backgroundImage: `url(${heroImage})`
       }}>
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/40 rounded-none" />
         </div>
         <div className="relative z-10 flex items-center justify-center min-h-full">
           <div className="text-center text-dark-blue py-[200px]">
