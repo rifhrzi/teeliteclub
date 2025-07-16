@@ -71,7 +71,7 @@ const Shop = () => {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-              TEELITECLUB
+              TEELITE CLUB
             </Link>
 
             {/* Right side - Shop, Cart, User */}

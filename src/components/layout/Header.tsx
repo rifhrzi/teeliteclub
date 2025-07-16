@@ -43,7 +43,7 @@ export function Header({ onSearchChange }: HeaderProps) {
           {/* Logo */}
         <div className="flex items-center space-x-4">
           <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-            TEELITECLUB
+            TEELITE CLUB
           </Link>
         </div>
 
