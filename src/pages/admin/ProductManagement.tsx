@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,7 +94,7 @@ const ProductManagement = () => {
       if (error) throw error;
       setProducts(data || []);
     } catch (error) {
-      console.error('Error loading products:', error);
+      logger.error('Failed to load products', error);
       toast.error('Gagal memuat produk');
     } finally {
       setLoading(false);
@@ -169,7 +170,7 @@ const ProductManagement = () => {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
+      logger.error('Failed to upload image', error);
       toast.error('Gagal mengunggah gambar');
       return null;
     } finally {
@@ -245,7 +246,7 @@ const ProductManagement = () => {
       resetForm();
       loadProducts();
     } catch (error) {
-      console.error('Error saving product:', error);
+      logger.error('Failed to save product', error);
       toast.error('Gagal menyimpan produk');
     }
   };
@@ -265,7 +266,7 @@ const ProductManagement = () => {
       toast.success('Produk berhasil dihapus');
       loadProducts();
     } catch (error) {
-      console.error('Error deleting product:', error);
+      logger.error('Failed to delete product', error);
       toast.error('Gagal menghapus produk');
     }
   };
@@ -281,7 +282,7 @@ const ProductManagement = () => {
       toast.success(`Produk ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
       loadProducts();
     } catch (error) {
-      console.error('Error updating product status:', error);
+      logger.error('Failed to update product status', error);
       toast.error('Gagal mengubah status produk');
     }
   };

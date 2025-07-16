@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { handleAuthError } from "@/lib/errorHandler";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,16 +42,12 @@ const Auth = () => {
     try {
       const { error } = await signIn(formData.email, formData.password);
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Email atau password salah');
-        } else {
-          toast.error(error.message);
-        }
+        toast.error(handleAuthError(error));
       } else {
         window.location.href = '/';
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan, silakan coba lagi');
+      toast.error(handleAuthError(error));
     } finally {
       setLoading(false);
     }
@@ -77,14 +74,10 @@ const Auth = () => {
     try {
       const { error } = await signUp(formData.email, formData.password, formData.nama);
       if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('Email sudah terdaftar');
-        } else {
-          toast.error(error.message);
-        }
+        toast.error(handleAuthError(error));
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan, silakan coba lagi');
+      toast.error(handleAuthError(error));
     } finally {
       setLoading(false);
     }

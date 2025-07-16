@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Profile {
   id: string;
@@ -66,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (userId: string) => {
     try {
-      console.log('Loading profile for user:', userId);
+      logger.debug('Loading user profile', { userId });
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -74,14 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (error) {
-        console.error('Error loading profile:', error);
+        logger.error('Failed to load user profile', { userId, error: error.message });
         return;
       }
 
-      console.log('Profile loaded:', data);
+      logger.info('User profile loaded successfully', { userId, role: data?.role });
       setProfile(data);
     } catch (error) {
-      console.error('Error loading profile:', error);
+      logger.error('Unexpected error loading profile', { userId, error });
     }
   };
 
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }]);
 
         if (profileError) {
-          console.error('Error creating profile:', profileError);
+          logger.error('Failed to create user profile', { userId: data.user.id, error: profileError.message });
         }
       }
 
@@ -151,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       toast.success('Berhasil logout!');
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Failed to sign out', error);
       toast.error('Gagal logout');
     }
   };
@@ -170,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(prev => prev ? { ...prev, ...updates } : null);
       toast.success('Profile berhasil diperbarui!');
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logger.error('Failed to update profile', error);
       toast.error('Gagal memperbarui profile');
     }
   };

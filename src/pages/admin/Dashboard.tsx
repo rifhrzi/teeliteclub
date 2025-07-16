@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { logger } from "@/lib/logger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -90,7 +92,8 @@ const AdminDashboard = () => {
 
       setRecentOrders(recentOrdersData || []);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      logger.error('Failed to load dashboard data', error);
+      toast.error('Gagal memuat data dashboard');
     } finally {
       setLoading(false);
     }
