@@ -18,7 +18,7 @@ const Index = () => {
   } = useCart();
   return <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b bg-[hsl(var(--header-footer))]">
+      <header className="bg-[hsl(var(--header-footer))]">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
