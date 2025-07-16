@@ -85,7 +85,7 @@ const Shop = () => {
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="text-2xl font-bold text-foreground">
+            <Link to="/" className="text-2xl font-anton text-dark-blue">
               TEELITECLUB
             </Link>
 
@@ -151,7 +151,7 @@ const Shop = () => {
       <div className="bg-muted/50 border-b">
         <div className="container mx-auto px-4 py-12">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-foreground mb-4">Shop</h1>
+            <h1 className="text-4xl font-bold text-dark-blue mb-4">Shop</h1>
             <p className="text-lg text-muted-foreground">Discover our premium collection</p>
           </div>
         </div>
@@ -162,7 +162,7 @@ const Shop = () => {
           {/* Results Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b">
             <div>
-              <h2 className="text-2xl font-semibold text-foreground">Products</h2>
+              <h2 className="text-2xl font-semibold text-dark-blue">Products</h2>
               <p className="text-muted-foreground mt-1">
                 {products.length} {products.length === 1 ? 'product' : 'products'} found
               </p>
@@ -187,7 +187,7 @@ const Shop = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground">No products found</h3>
+                  <h3 className="text-xl font-semibold text-dark-blue">No products found</h3>
                   <p className="text-muted-foreground">
                     No products are currently available.
                   </p>

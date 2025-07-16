@@ -100,7 +100,7 @@ export function ProductFilters({ onFiltersChange, className }: ProductFiltersPro
       <CardContent className="space-y-6">
         {/* Categories */}
         <div className="space-y-3">
-          <h4 className="font-medium text-sm text-foreground">Kategori</h4>
+          <h4 className="font-medium text-sm text-dark-blue">Kategori</h4>
           {categories.map((category) => (
             <div key={category.id} className="flex items-center space-x-2">
               <Checkbox
@@ -121,7 +121,7 @@ export function ProductFilters({ onFiltersChange, className }: ProductFiltersPro
 
         {/* Sizes */}
         <div className="space-y-3">
-          <h4 className="font-medium text-sm text-foreground">Ukuran</h4>
+          <h4 className="font-medium text-sm text-dark-blue">Ukuran</h4>
           <div className="grid grid-cols-3 gap-2">
             {sizes.map((size) => (
               <div key={size.id} className="flex items-center space-x-2">
@@ -144,7 +144,7 @@ export function ProductFilters({ onFiltersChange, className }: ProductFiltersPro
 
         {/* Price Range */}
         <div className="space-y-3">
-          <h4 className="font-medium text-sm text-foreground">Rentang Harga</h4>
+          <h4 className="font-medium text-sm text-dark-blue">Rentang Harga</h4>
           <div className="px-2">
             <Slider
               value={filters.priceRange}
