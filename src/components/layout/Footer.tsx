@@ -3,7 +3,7 @@ import { Instagram, Twitter } from "lucide-react";
 // Footer component for consistent layout across all pages
 export const Footer = () => {
   return (
-    <footer className="bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))] border-t py-8">
+    <footer className="bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))] py-8">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center space-y-4">
           {/* Brand */}
