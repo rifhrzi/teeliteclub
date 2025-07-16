@@ -22,7 +22,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="text-2xl font-etna font-black text-dark-blue">TEELITECLUB</Link>
+            <Link to="/" className="text-2xl font-etna font-black text-dark-blue tracking-wider">TEELITECLUB</Link>
 
             {/* Right side - Shop, Cart, User */}
             <div className="flex items-center space-x-6">
