@@ -42,7 +42,7 @@ export function Header({ onSearchChange }: HeaderProps) {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
         <div className="flex items-center space-x-4">
-          <Link to="/" className="text-2xl font-etna text-dark-blue">
+          <Link to="/" className="text-2xl font-etna font-black text-dark-blue">
             TEELITECLUB
           </Link>
         </div>
