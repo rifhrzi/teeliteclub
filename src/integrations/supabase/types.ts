@@ -110,6 +110,7 @@ export type Database = {
           status: string | null
           telepon_pembeli: string | null
           total: number
+          tracking_number: string | null
           updated_at: string | null
           user_id: string
         }
@@ -125,6 +126,7 @@ export type Database = {
           status?: string | null
           telepon_pembeli?: string | null
           total: number
+          tracking_number?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -140,6 +142,7 @@ export type Database = {
           status?: string | null
           telepon_pembeli?: string | null
           total?: number
+          tracking_number?: string | null
           updated_at?: string | null
           user_id?: string
         }

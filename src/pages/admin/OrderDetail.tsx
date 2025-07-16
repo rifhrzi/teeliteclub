@@ -4,9 +4,12 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ArrowLeft, Package, Truck, CheckCircle, Clock, AlertCircle, User, MapPin, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +38,7 @@ interface Order {
   payment_method: string;
   shipping_method: string;
   shipping_address: string;
+  tracking_number?: string;
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -46,6 +50,8 @@ const OrderDetail = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [showTrackingDialog, setShowTrackingDialog] = useState(false);
   const { toast } = useToast();
 
   const statusOptions = [
@@ -126,6 +132,12 @@ const OrderDetail = () => {
   const updateOrderStatus = async (newStatus: string) => {
     if (!order) return;
 
+    // If changing to shipped status, show tracking dialog
+    if (newStatus === "shipped") {
+      setShowTrackingDialog(true);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from("orders")
@@ -142,6 +154,46 @@ const OrderDetail = () => {
 
     } catch (error) {
       console.error("Error updating order status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateOrderWithTracking = async () => {
+    if (!order || !trackingNumber.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a tracking number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ 
+          status: "shipped", 
+          tracking_number: trackingNumber.trim(),
+          updated_at: new Date().toISOString() 
+        })
+        .eq("id", order.id);
+
+      if (error) throw error;
+
+      setOrder({ ...order, status: "shipped", tracking_number: trackingNumber.trim() });
+      setShowTrackingDialog(false);
+      setTrackingNumber("");
+      toast({
+        title: "Success",
+        description: "Order status updated to shipped with tracking number",
+      });
+
+    } catch (error) {
+      console.error("Error updating order with tracking:", error);
       toast({
         title: "Error",
         description: "Failed to update order status",
@@ -309,7 +361,7 @@ const OrderDetail = () => {
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border border-border shadow-md z-50">
                     {statusOptions.map(option => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -317,6 +369,14 @@ const OrderDetail = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                
+                {/* Display tracking number if exists */}
+                {order.tracking_number && (
+                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                    <Label className="text-sm font-medium">Tracking Number</Label>
+                    <p className="text-sm font-mono">{order.tracking_number}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -389,6 +449,41 @@ const OrderDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Tracking Number Dialog */}
+        <Dialog open={showTrackingDialog} onOpenChange={setShowTrackingDialog}>
+          <DialogContent className="bg-background border border-border">
+            <DialogHeader>
+              <DialogTitle>Add Tracking Number</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="tracking-number">Tracking Number</Label>
+                <Input
+                  id="tracking-number"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="Enter tracking number"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowTrackingDialog(false);
+                    setTrackingNumber("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={updateOrderWithTracking}>
+                  Update to Shipped
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Package, Calendar, CreditCard } from "lucide-react";
+import { ArrowLeft, Package, Calendar, CreditCard, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/layout/Footer";
 
@@ -34,6 +34,7 @@ interface Order {
   shipping_address: string;
   payment_method: string;
   shipping_method: string;
+  tracking_number?: string;
   order_items: OrderItem[];
 }
 
@@ -229,6 +230,20 @@ const Orders = () => {
                         </div>
                         <p><strong>Pengiriman:</strong> {order.shipping_method === 'express' ? 'Express' : 'Reguler'}</p>
                         <p><strong>Alamat:</strong> {order.shipping_address}</p>
+                        
+                        {/* Display tracking number if order is shipped */}
+                        {order.status === 'shipped' && order.tracking_number && (
+                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Truck className="h-4 w-4 text-blue-600" />
+                              <span className="font-semibold text-blue-600">Nomor Resi</span>
+                            </div>
+                            <p className="font-mono text-sm font-medium">{order.tracking_number}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Gunakan nomor resi ini untuk melacak paket Anda
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
