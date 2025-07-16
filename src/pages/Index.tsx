@@ -89,7 +89,7 @@ const Index = () => {
           <div className="text-center py-32 text-white">
             
             
-            <Button size="lg" className="px-12 py-6 text-lg font-medium bg-white text-black hover:bg-white/90 animate-scale-in" asChild>
+            <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium text-white border-white hover:bg-white hover:text-black animate-scale-in" asChild>
               <Link to="/shop">Shop Now</Link>
             </Button>
           </div>
