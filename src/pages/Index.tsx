@@ -18,20 +18,20 @@ const Index = () => {
   } = useCart();
   return <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b bg-background">
+      <header className="border-b bg-[hsl(var(--header-footer))]">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="text-2xl font-etna font-black text-dark-blue tracking-wider">TEELITECLUB</Link>
+            <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">TEELITECLUB</Link>
 
             {/* Right side - Shop, Cart, User */}
             <div className="flex items-center space-x-6">
-              <Link to="/shop" className="text-lg font-medium text-dark-blue hover:text-primary transition-colors">
+              <Link to="/shop" className="text-lg font-medium text-[hsl(var(--header-footer-foreground))] hover:text-[hsl(var(--header-footer-foreground))]/80 transition-colors">
                 Shop
               </Link>
 
               {/* Cart */}
-              <Button variant="ghost" size="icon" className="relative" asChild>
+              <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
                 <Link to="/cart">
                   <ShoppingCart className="h-6 w-6" />
                   {getCartItemsCount() > 0 && <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
@@ -43,7 +43,7 @@ const Index = () => {
               {/* User Account */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
                     <User className="h-6 w-6" />
                   </Button>
                 </DropdownMenuTrigger>
