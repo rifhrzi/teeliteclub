@@ -3,41 +3,44 @@ import { Search, ShoppingCart, User, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { Link } from "react-router-dom";
-
 interface HeaderProps {
   onSearchChange?: (query: string) => void;
 }
-
-export function Header({ onSearchChange }: HeaderProps) {
+export function Header({
+  onSearchChange
+}: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, profile, signOut } = useAuth();
-  const { getCartItemsCount } = useCart();
-
+  const {
+    user,
+    profile,
+    signOut
+  } = useAuth();
+  const {
+    getCartItemsCount
+  } = useCart();
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearchChange?.(searchQuery);
   };
-
-  const navigationItems = [
-    { label: "Semua Produk", href: "/" },
-    { label: "Pria", href: "/kategori/pria" },
-    { label: "Wanita", href: "/kategori/wanita" },
-    { label: "Anak", href: "/kategori/anak" },
-  ];
-
-  return (
-    <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
+  const navigationItems = [{
+    label: "Semua Produk",
+    href: "/"
+  }, {
+    label: "Pria",
+    href: "/kategori/pria"
+  }, {
+    label: "Wanita",
+    href: "/kategori/wanita"
+  }, {
+    label: "Anak",
+    href: "/kategori/anak"
+  }];
+  return <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Left side - Burger menu */}
@@ -50,19 +53,10 @@ export function Header({ onSearchChange }: HeaderProps) {
               </SheetTrigger>
               <SheetContent side="left">
                 <nav className="flex flex-col space-y-4 mt-8">
-                  {navigationItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      to={item.href}
-                      className="text-lg font-medium hover:text-muted-foreground transition-colors"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
+                  {navigationItems.map(item => {})}
                   
                   <div className="border-t pt-4 mt-8">
-                    {user ? (
-                      <>
+                    {user ? <>
                         <div className="mb-4">
                           <p className="font-medium">{profile?.nama || 'User'}</p>
                           <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -77,17 +71,14 @@ export function Header({ onSearchChange }: HeaderProps) {
                           <LogOut className="mr-2 h-4 w-4" />
                           Logout
                         </Button>
-                      </>
-                    ) : (
-                      <div className="space-y-2">
+                      </> : <div className="space-y-2">
                         <Link to="/auth" className="block py-2 text-lg font-medium hover:text-muted-foreground transition-colors">
                           Login
                         </Link>
                         <Link to="/auth" className="block py-2 text-lg font-medium hover:text-muted-foreground transition-colors">
                           Register
                         </Link>
-                      </div>
-                    )}
+                      </div>}
                   </div>
                 </nav>
               </SheetContent>
@@ -105,16 +96,13 @@ export function Header({ onSearchChange }: HeaderProps) {
             <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
               <Link to="/cart">
                 <ShoppingCart className="h-5 w-5" />
-                {getCartItemsCount() > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
+                {getCartItemsCount() > 0 && <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
                     {getCartItemsCount()}
-                  </Badge>
-                )}
+                  </Badge>}
               </Link>
             </Button>
           </div>
         </div>
       </div>
-    </header>
-  );
+    </header>;
 }
