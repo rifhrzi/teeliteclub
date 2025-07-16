@@ -40,7 +40,7 @@ export function Header({
     label: "Anak",
     href: "/kategori/anak"
   }];
-  return <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
+  return <header className="bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between my-[8px]">
           {/* Left side - Burger menu */}
