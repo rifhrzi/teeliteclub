@@ -19,7 +19,7 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				etna: ["Arial", "sans-serif"],
+				etna: ["Helvetica Neue", "Arial", "sans-serif"],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
