@@ -37,12 +37,12 @@ export function Header({ onSearchChange }: HeaderProps) {
   ];
 
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
         <div className="flex items-center space-x-4">
-          <Link to="/" className="text-2xl font-etna font-black text-dark-blue tracking-wider">
+          <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
             TEELITECLUB
           </Link>
         </div>

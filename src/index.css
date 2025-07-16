@@ -38,6 +38,9 @@ All colors MUST be HSL.
 
     --dark-blue: 220 100% 25%;
     --dark-blue-foreground: 0 0% 100%;
+    
+    --header-footer: 235 44% 30%;
+    --header-footer-foreground: 0 0% 100%;
 
     --radius: 0.5rem;
 
@@ -89,6 +92,9 @@ All colors MUST be HSL.
     
     --dark-blue: 220 100% 25%;
     --dark-blue-foreground: 0 0% 100%;
+    
+    --header-footer: 235 44% 30%;
+    --header-footer-foreground: 0 0% 100%;
     
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
