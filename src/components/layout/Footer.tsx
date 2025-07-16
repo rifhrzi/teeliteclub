@@ -7,7 +7,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center space-y-4">
           {/* Brand */}
-          <h3 className="text-lg font-bold text-foreground">Teelite</h3>
+          <h3 className="text-lg font-bold text-foreground">TEELITECLUB</h3>
           
           {/* Social Media */}
           <div className="flex space-x-6">
@@ -24,7 +24,7 @@ export const Footer = () => {
           
           {/* Copyright */}
           <p className="text-muted-foreground text-xs">
-            &copy; 2024 Teelite. All rights reserved.
+            &copy; 2024 TEELITECLUB. All rights reserved.
           </p>
         </div>
       </div>

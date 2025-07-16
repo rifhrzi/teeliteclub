@@ -86,7 +86,7 @@ const Shop = () => {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="text-2xl font-bold text-foreground">
-              Teelite
+              TEELITECLUB
             </Link>
 
             {/* Right side - Shop, Cart, User */}
