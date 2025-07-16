@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Package, Calendar, CreditCard, Truck } from "lucide-react";
+import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/layout/Footer";
 
@@ -43,6 +43,7 @@ const Orders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -78,6 +79,16 @@ const Orders = () => {
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+  };
+
+  const toggleOrderDetails = (orderId: string) => {
+    const newExpanded = new Set(expandedOrders);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
+    setExpandedOrders(newExpanded);
   };
 
   useEffect(() => {
@@ -189,63 +200,110 @@ const Orders = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {/* Order Items */}
-                    <div>
-                      <h4 className="font-semibold mb-3">Produk yang Dipesan</h4>
-                      <div className="space-y-3">
-                        {order.order_items.map((item) => (
-                          <div key={item.id} className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{item.product?.name || 'Produk tidak ditemukan'}</p>
-                              <p className="text-sm text-muted-foreground">
-                                Ukuran: {item.ukuran} • Qty: {item.jumlah}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-medium">{formatPrice(item.harga * item.jumlah)}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatPrice(item.harga)} × {item.jumlah}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                    {/* Order Summary - Always visible */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {order.order_items.length} produk
+                        </span>
                       </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Order Details */}
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <h5 className="font-semibold mb-2">Informasi Pembeli</h5>
-                        <p><strong>Nama:</strong> {order.nama_pembeli}</p>
-                        <p><strong>Email:</strong> {order.email_pembeli}</p>
-                        <p><strong>Telepon:</strong> {order.telepon_pembeli}</p>
-                      </div>
-                      <div>
-                        <h5 className="font-semibold mb-2">Pengiriman & Pembayaran</h5>
-                        <div className="flex items-center gap-2 mb-1">
-                          <CreditCard className="h-4 w-4" />
-                          <span className="capitalize">{order.payment_method}</span>
-                        </div>
-                        <p><strong>Pengiriman:</strong> {order.shipping_method === 'express' ? 'Express' : 'Reguler'}</p>
-                        <p><strong>Alamat:</strong> {order.shipping_address}</p>
-                        
-                        {/* Display tracking number if order is shipped */}
-                        {order.status === 'shipped' && order.tracking_number && (
-                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Truck className="h-4 w-4 text-blue-600" />
-                              <span className="font-semibold text-blue-600">Nomor Resi</span>
-                            </div>
-                            <p className="font-mono text-sm font-medium">{order.tracking_number}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Gunakan nomor resi ini untuk melacak paket Anda
-                            </p>
-                          </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleOrderDetails(order.id)}
+                        className="flex items-center gap-2"
+                      >
+                        {expandedOrders.has(order.id) ? 'Sembunyikan Detail' : 'Lihat Seluruhnya'}
+                        {expandedOrders.has(order.id) ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
                         )}
-                      </div>
+                      </Button>
                     </div>
+
+                    {/* Expanded Details */}
+                    {expandedOrders.has(order.id) && (
+                      <>
+                        <Separator />
+                        
+                        {/* Order Items */}
+                        <div>
+                          <h4 className="font-semibold mb-3">Produk yang Dipesan</h4>
+                          <div className="space-y-3">
+                            {order.order_items.map((item) => (
+                              <div key={item.id} className="flex justify-between items-center">
+                                <div>
+                                  <p className="font-medium">{item.product?.name || 'Produk tidak ditemukan'}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Ukuran: {item.ukuran} • Qty: {item.jumlah}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-medium">{formatPrice(item.harga * item.jumlah)}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {formatPrice(item.harga)} × {item.jumlah}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Order Details */}
+                        <div className="grid md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <h5 className="font-semibold mb-2">Informasi Pembeli</h5>
+                            <p><strong>Nama:</strong> {order.nama_pembeli}</p>
+                            <p><strong>Email:</strong> {order.email_pembeli}</p>
+                            <p><strong>Telepon:</strong> {order.telepon_pembeli}</p>
+                          </div>
+                          <div>
+                            <h5 className="font-semibold mb-2">Pengiriman & Pembayaran</h5>
+                            <div className="flex items-center gap-2 mb-1">
+                              <CreditCard className="h-4 w-4" />
+                              <span className="capitalize">{order.payment_method}</span>
+                            </div>
+                            <p><strong>Pengiriman:</strong> {order.shipping_method === 'express' ? 'Express' : 'Reguler'}</p>
+                            <p><strong>Alamat:</strong> {order.shipping_address}</p>
+                            
+                            {/* Display tracking number if order is shipped */}
+                            {order.status === 'shipped' && order.tracking_number && (
+                              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Truck className="h-4 w-4 text-blue-600" />
+                                  <span className="font-semibold text-blue-600">Nomor Resi</span>
+                                </div>
+                                <p className="font-mono text-sm font-medium">{order.tracking_number}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Gunakan nomor resi ini untuk melacak paket Anda
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Tracking number - Always visible if shipped */}
+                    {!expandedOrders.has(order.id) && order.status === 'shipped' && order.tracking_number && (
+                      <>
+                        <Separator />
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Truck className="h-4 w-4 text-blue-600" />
+                            <span className="font-semibold text-blue-600">Nomor Resi</span>
+                          </div>
+                          <p className="font-mono text-sm font-medium">{order.tracking_number}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Gunakan nomor resi ini untuk melacak paket Anda
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
