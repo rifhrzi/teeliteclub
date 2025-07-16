@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import heroImage from "@/assets/hero-image.jpg";
+const heroImage = "/lovable-uploads/221962fb-649c-4648-9185-60908c468b2f.png";
 import { ShoppingCart, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
