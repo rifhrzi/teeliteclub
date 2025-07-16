@@ -12,9 +12,11 @@ import {
   Users, 
   TrendingUp,
   Calendar,
-  Eye
+  Eye,
+  Settings
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { HeroSettings } from "@/components/admin/HeroSettings";
 
 interface DashboardStats {
   totalProducts: number;
@@ -284,6 +286,11 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Hero Settings */}
+        <div className="grid gap-4">
+          <HeroSettings />
         </div>
       </div>
     </AdminLayout>
