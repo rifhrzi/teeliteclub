@@ -86,7 +86,7 @@ const Index = () => {
           <div className="absolute inset-0 bg-black/40" />
         </div>
         <div className="relative z-10 flex items-center justify-center min-h-full">
-          <div className="text-center py-32 text-[hsl(var(--dark-blue))]">
+          <div className="text-center py-32 text-dark-blue">
             
             
             <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-white text-white bg-transparent hover:bg-white hover:text-black animate-scale-in" asChild>
