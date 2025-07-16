@@ -7,7 +7,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center space-y-4">
           {/* Brand */}
-          <h3 className="text-lg font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">TEELITECLUB</h3>
+          <h3 className="text-lg font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">PARENTAL OF WESTERN CIVILIZATION</h3>
           
           {/* Social Media */}
           <div className="flex space-x-6">
