@@ -53,7 +53,15 @@ export function Header({
               </SheetTrigger>
               <SheetContent side="left">
                 <nav className="flex flex-col space-y-4 mt-8">
-                  {navigationItems.map(item => {})}
+                  {navigationItems.map(item => (
+                    <Link 
+                      key={item.href} 
+                      to={item.href} 
+                      className="block py-2 text-lg font-medium hover:text-muted-foreground transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
                   
                   <div className="border-t pt-4 mt-8">
                     {user ? <>
