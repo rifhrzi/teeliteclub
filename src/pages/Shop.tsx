@@ -76,9 +76,7 @@ const Shop = () => {
 
             {/* Right side - Shop, Cart, User */}
             <div className="flex items-center space-x-6">
-              <Link to="/shop" className="text-lg font-medium text-[hsl(var(--header-footer-foreground))]">
-                Shop
-              </Link>
+              
 
               {/* Cart */}
               <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
