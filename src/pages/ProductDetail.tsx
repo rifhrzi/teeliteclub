@@ -141,7 +141,7 @@ const ProductDetail = () => {
             <div className="flex h-16 items-center justify-between">
               {/* Logo */}
               <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-                TEELITE CLUB
+                TEELITECLUB
               </Link>
 
               {/* Right side - Cart, User */}
@@ -222,7 +222,7 @@ const ProductDetail = () => {
             <div className="flex h-16 items-center justify-between">
               {/* Logo */}
               <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-                TEELITE CLUB
+                TEELITECLUB
               </Link>
 
               {/* Right side - Cart, User */}
@@ -303,7 +303,7 @@ const ProductDetail = () => {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-              TEELITE CLUB
+              TEELITECLUB
             </Link>
 
             {/* Right side - Cart, User */}
