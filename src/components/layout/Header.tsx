@@ -52,7 +52,7 @@ export function Header({ onSearchChange }: HeaderProps) {
           {/* Right side actions */}
           <div className="flex items-center space-x-2">
             {/* Cart */}
-            <Button variant="ghost" size="icon" className="relative" asChild>
+            <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
               <Link to="/cart">
                 <ShoppingCart className="h-5 w-5" />
                 {getCartItemsCount() > 0 && (
@@ -66,7 +66,7 @@ export function Header({ onSearchChange }: HeaderProps) {
             {/* User Account */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
                   <User className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -103,7 +103,7 @@ export function Header({ onSearchChange }: HeaderProps) {
             {/* Mobile menu */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="ghost" size="icon" className="md:hidden text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -113,7 +113,7 @@ export function Header({ onSearchChange }: HeaderProps) {
                     <Link
                       key={item.label}
                       to={item.href}
-                      className="text-lg font-medium text-dark-blue hover:text-primary transition-colors"
+                      className="text-lg font-medium text-[hsl(var(--header-footer-foreground))] hover:text-[hsl(var(--header-footer-foreground))]/80 transition-colors"
                     >
                       {item.label}
                     </Link>
