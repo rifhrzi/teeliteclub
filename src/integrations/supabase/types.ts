@@ -296,6 +296,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_audit_log: {
+        Row: {
+          action: string
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          new_role: string
+          old_role: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_role: string
+          old_role?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_role?: string
+          old_role?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -332,6 +362,10 @@ export type Database = {
           action: string
           date: string
         }[]
+      }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: string
       }
     }
     Enums: {
