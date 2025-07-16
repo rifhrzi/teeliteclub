@@ -401,10 +401,6 @@ const ProductDetail = () => {
               </div>
             )}
 
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Stock Available</h3>
-              <p className="text-muted-foreground">{product.stock_quantity} units</p>
-            </div>
 
             {/* Size Selection */}
             {product.ukuran && product.ukuran.length > 0 && (
