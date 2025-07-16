@@ -22,9 +22,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="text-2xl font-bold text-foreground">
-              TEELITECLUB
-            </Link>
+            <Link to="/" className="text-2xl font-bold text-foreground">TEELITECLUB</Link>
 
             {/* Right side - Shop, Cart, User */}
             <div className="flex items-center space-x-6">
@@ -86,7 +84,7 @@ const Index = () => {
           <div className="absolute inset-0 bg-black/40" />
         </div>
         <div className="relative z-10 flex items-center justify-center min-h-full">
-          <div className="text-center py-32 text-dark-blue">
+          <div className="text-center text-dark-blue py-[200px]">
             
             
             <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-white text-white bg-transparent hover:bg-white hover:text-black animate-scale-in" asChild>
