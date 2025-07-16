@@ -40,14 +40,14 @@ export function Header({ onSearchChange }: HeaderProps) {
     <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-        <div className="flex items-center space-x-4">
-          <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-            TEELITE CLUB
+          {/* Empty space for symmetry */}
+          <div className="flex items-center space-x-4"></div>
+          
+          {/* Logo - Centered */}
+          <Link to="/" className="flex flex-col items-center text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider leading-tight">
+            <span>TEELITE</span>
+            <span>CLUB</span>
           </Link>
-        </div>
-
-          <div className="flex-1"></div>
 
           {/* Right side actions */}
           <div className="flex items-center space-x-2">

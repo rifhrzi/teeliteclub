@@ -39,16 +39,17 @@ const Index = () => {
       <header className="bg-[hsl(var(--header-footer))]">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
+            {/* Empty space for symmetry */}
+            <div className="flex items-center space-x-6"></div>
+            
+            {/* Logo - Centered */}
             <Link to="/" className="flex flex-col items-center text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider leading-tight">
               <span>TEELITE</span>
               <span>CLUB</span>
             </Link>
 
-            {/* Right side - Shop, Cart, User */}
+            {/* Right side - Cart, User */}
             <div className="flex items-center space-x-6">
-              
-
               {/* Cart */}
               <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
                 <Link to="/cart">
