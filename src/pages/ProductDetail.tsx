@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, ShoppingCart, Package } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Package, CreditCard } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 
 interface Product {
@@ -91,6 +91,30 @@ const ProductDetail = () => {
       toast({
         title: "Error",
         description: "Failed to add item to cart",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDirectCheckout = async () => {
+    if (!product || !selectedSize) {
+      toast({
+        title: "Error",
+        description: "Please select a size",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Add item to cart first
+      await addToCart(product.id, selectedSize, quantity);
+      // Navigate directly to checkout
+      navigate("/checkout");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to proceed to checkout",
         variant: "destructive",
       });
     }
@@ -242,16 +266,29 @@ const ProductDetail = () => {
               </Select>
             </div>
 
-            {/* Add to Cart Button */}
-            <Button
-              onClick={handleAddToCart}
-              disabled={product.stock_quantity === 0 || !selectedSize}
-              className="w-full"
-              size="lg"
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              {product.stock_quantity === 0 ? "Out of Stock" : "Add to Cart"}
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={handleDirectCheckout}
+                disabled={product.stock_quantity === 0 || !selectedSize}
+                className="w-full"
+                size="lg"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                {product.stock_quantity === 0 ? "Out of Stock" : "Beli Sekarang"}
+              </Button>
+              
+              <Button
+                onClick={handleAddToCart}
+                disabled={product.stock_quantity === 0 || !selectedSize}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                {product.stock_quantity === 0 ? "Out of Stock" : "Add to Cart"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
