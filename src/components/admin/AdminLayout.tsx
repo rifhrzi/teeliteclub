@@ -107,12 +107,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
-      <div className="lg:hidden border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="lg:hidden border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
         <div className="flex h-16 items-center justify-between px-4">
-          <h1 className="text-xl font-bold text-primary">Admin Panel</h1>
+          <h1 className="text-xl font-bold text-[hsl(var(--header-footer-foreground))]">Admin Panel</h1>
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
