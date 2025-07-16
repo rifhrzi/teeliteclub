@@ -9,22 +9,23 @@ import { useCart } from "@/hooks/useCart";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Footer } from "@/components/layout/Footer";
 const Index = () => {
-  const { user, profile, signOut } = useAuth();
-  const { getCartItemsCount } = useCart();
+  const {
+    user,
+    profile,
+    signOut
+  } = useAuth();
+  const {
+    getCartItemsCount
+  } = useCart();
   const [heroImage, setHeroImage] = useState("/lovable-uploads/a773ac2f-9e06-49da-a3b9-b4425905b493.png");
-
   useEffect(() => {
     loadHeroImage();
   }, []);
-
   const loadHeroImage = async () => {
     try {
-      const { data } = await supabase
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'hero_image_url')
-        .single();
-
+      const {
+        data
+      } = await supabase.from('system_settings').select('value').eq('key', 'hero_image_url').single();
       if (data?.value) {
         setHeroImage(data.value);
       }
@@ -43,9 +44,7 @@ const Index = () => {
 
             {/* Right side - Shop, Cart, User */}
             <div className="flex items-center space-x-6">
-              <Link to="/shop" className="text-lg font-medium text-[hsl(var(--header-footer-foreground))] hover:text-[hsl(var(--header-footer-foreground))]/80 transition-colors">
-                Shop
-              </Link>
+              
 
               {/* Cart */}
               <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
