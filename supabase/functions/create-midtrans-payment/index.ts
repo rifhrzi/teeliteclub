@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting Midtrans payment creation...');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -28,14 +30,25 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
+    console.log('User authenticated:', user.email);
+
     const { orderData, items } = await req.json();
+    console.log('Order data received:', orderData);
+    console.log('Items count:', items?.length);
 
     // Midtrans configuration
     const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY');
-    const isProduction = Deno.env.get('MIDTRANS_ENVIRONMENT') === 'production';
+    const environment = Deno.env.get('MIDTRANS_ENVIRONMENT') || 'sandbox';
+    const isProduction = environment === 'production';
+    
+    console.log('Midtrans environment:', environment);
+    console.log('Server key exists:', !!serverKey);
+    
     const snapUrl = isProduction 
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+
+    console.log('Snap URL:', snapUrl);
 
     if (!serverKey) {
       throw new Error('Midtrans server key not configured');
@@ -49,7 +62,9 @@ serve(async (req) => {
     );
 
     // Generate order number
+    console.log('Generating order number...');
     const { data: orderNumberData } = await supabaseService.rpc('generate_order_number');
+    console.log('Order number generated:', orderNumberData);
     
     const dbOrderData = {
       ...orderData,
@@ -58,13 +73,19 @@ serve(async (req) => {
       status: 'pending'
     };
 
+    console.log('Creating order in database...');
     const { data: order, error: orderError } = await supabaseService
       .from('orders')
       .insert([dbOrderData])
       .select()
       .single();
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error('Database order error:', orderError);
+      throw orderError;
+    }
+
+    console.log('Order created with ID:', order.id);
 
     // Create order items
     const orderItems = items.map((item: any) => ({
@@ -75,11 +96,17 @@ serve(async (req) => {
       ukuran: item.ukuran
     }));
 
+    console.log('Creating order items...');
     const { error: itemsError } = await supabaseService
       .from('order_items')
       .insert(orderItems);
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error('Database items error:', itemsError);
+      throw itemsError;
+    }
+
+    console.log('Order items created successfully');
 
     // Prepare Midtrans transaction data
     const itemDetails = items.map((item: any) => ({
@@ -99,10 +126,12 @@ serve(async (req) => {
       });
     }
 
+    const grossAmount = orderData.total + (orderData.shipping_method === 'express' ? 20000 : 0);
+
     const transactionData = {
       transaction_details: {
         order_id: order.order_number,
-        gross_amount: orderData.total + (orderData.shipping_method === 'express' ? 20000 : 0)
+        gross_amount: grossAmount
       },
       item_details: itemDetails,
       customer_details: {
@@ -115,13 +144,13 @@ serve(async (req) => {
       },
       credit_card: {
         secure: true
-      },
-      callbacks: {
-        finish: `${req.headers.get('origin')}/payment-success?order_id=${order.order_number}`
       }
     };
 
+    console.log('Midtrans transaction data:', JSON.stringify(transactionData, null, 2));
+
     // Create Midtrans transaction
+    console.log('Calling Midtrans API...');
     const midtransResponse = await fetch(snapUrl, {
       method: 'POST',
       headers: {
@@ -132,13 +161,16 @@ serve(async (req) => {
       body: JSON.stringify(transactionData)
     });
 
+    console.log('Midtrans response status:', midtransResponse.status);
+
     if (!midtransResponse.ok) {
       const errorText = await midtransResponse.text();
-      console.error('Midtrans error:', errorText);
-      throw new Error('Failed to create Midtrans transaction');
+      console.error('Midtrans API error response:', errorText);
+      throw new Error(`Midtrans API error: ${midtransResponse.status} - ${errorText}`);
     }
 
     const midtransData = await midtransResponse.json();
+    console.log('Midtrans response data:', midtransData);
 
     // Update order with Midtrans token
     await supabaseService
@@ -147,6 +179,8 @@ serve(async (req) => {
         tracking_number: midtransData.token // Store Midtrans token in tracking_number field temporarily
       })
       .eq('id', order.id);
+
+    console.log('Payment creation successful');
 
     return new Response(JSON.stringify({
       token: midtransData.token,
