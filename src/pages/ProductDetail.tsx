@@ -24,6 +24,11 @@ interface Product {
   ukuran: string[];
 }
 
+interface ProductSize {
+  ukuran: string;
+  stok: number;
+}
+
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -32,6 +37,7 @@ const ProductDetail = () => {
   const { user, profile, signOut } = useAuth();
   
   const [product, setProduct] = useState<Product | null>(null);
+  const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
@@ -53,6 +59,15 @@ const ProductDetail = () => {
 
       if (error) throw error;
       setProduct(data);
+
+      // Fetch product sizes
+      const { data: sizesData, error: sizesError } = await supabase
+        .from("product_sizes")
+        .select("ukuran, stok")
+        .eq("product_id", id);
+
+      if (sizesError) throw sizesError;
+      setProductSizes(sizesData || []);
     } catch (error) {
       console.error("Error fetching product:", error);
       toast({
@@ -64,6 +79,15 @@ const ProductDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getTotalStock = () => {
+    return productSizes.reduce((total, size) => total + size.stok, 0);
+  };
+
+  const getSelectedSizeStock = () => {
+    const sizeData = productSizes.find(size => size.ukuran === selectedSize);
+    return sizeData ? sizeData.stok : 0;
   };
 
   const formatCurrency = (amount: number) => {
@@ -384,8 +408,8 @@ const ProductDetail = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary">{product.category}</Badge>
-                <Badge variant={product.stock_quantity > 0 ? "default" : "destructive"}>
-                  {product.stock_quantity > 0 ? "In Stock" : "Out of Stock"}
+                <Badge variant={getTotalStock() > 0 ? "default" : "destructive"}>
+                  {getTotalStock() > 0 ? "In Stock" : "Out of Stock"}
                 </Badge>
               </div>
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
@@ -411,9 +435,13 @@ const ProductDetail = () => {
                     <SelectValue placeholder="Select a size" />
                   </SelectTrigger>
                   <SelectContent>
-                    {product.ukuran.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
+                    {productSizes.map((sizeData) => (
+                      <SelectItem 
+                        key={sizeData.ukuran} 
+                        value={sizeData.ukuran}
+                        disabled={sizeData.stok === 0}
+                      >
+                        {sizeData.ukuran} {sizeData.stok === 0 ? "(Out of Stock)" : `(${sizeData.stok} left)`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -432,7 +460,7 @@ const ProductDetail = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: Math.min(10, product.stock_quantity) }, (_, i) => i + 1).map((num) => (
+                  {Array.from({ length: Math.min(10, getSelectedSizeStock()) }, (_, i) => i + 1).map((num) => (
                     <SelectItem key={num} value={num.toString()}>
                       {num}
                     </SelectItem>
@@ -445,23 +473,23 @@ const ProductDetail = () => {
             <div className="flex flex-col gap-3">
               <Button
                 onClick={handleDirectCheckout}
-                disabled={product.stock_quantity === 0 || !selectedSize}
+                disabled={getTotalStock() === 0 || !selectedSize || getSelectedSizeStock() === 0}
                 className="w-full"
                 size="lg"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
-                {product.stock_quantity === 0 ? "Out of Stock" : "Beli Sekarang"}
+                {getTotalStock() === 0 ? "Out of Stock" : "Beli Sekarang"}
               </Button>
               
               <Button
                 onClick={handleAddToCart}
-                disabled={product.stock_quantity === 0 || !selectedSize}
+                disabled={getTotalStock() === 0 || !selectedSize || getSelectedSizeStock() === 0}
                 variant="outline"
                 className="w-full"
                 size="lg"
               >
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                {product.stock_quantity === 0 ? "Out of Stock" : "Add to Cart"}
+                {getTotalStock() === 0 ? "Out of Stock" : "Add to Cart"}
               </Button>
             </div>
           </div>

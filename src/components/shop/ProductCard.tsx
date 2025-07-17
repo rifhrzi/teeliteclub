@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
   id: string;
@@ -21,6 +22,11 @@ interface Product {
   is_active?: boolean;
 }
 
+interface ProductSize {
+  ukuran: string;
+  stok: number;
+}
+
 interface ProductCardProps {
   product: Product;
 }
@@ -29,6 +35,29 @@ export function ProductCard({ product }: ProductCardProps) {
   const { toast } = useToast();
   const { addToCart } = useCart();
   const [selectedSize, setSelectedSize] = useState<string>("");
+  const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
+
+  useEffect(() => {
+    fetchProductSizes();
+  }, [product.id]);
+
+  const fetchProductSizes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("product_sizes")
+        .select("ukuran, stok")
+        .eq("product_id", product.id);
+
+      if (error) throw error;
+      setProductSizes(data || []);
+    } catch (error) {
+      console.error("Error fetching product sizes:", error);
+    }
+  };
+
+  const getTotalStock = () => {
+    return productSizes.reduce((total, size) => total + size.stok, 0);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -89,8 +118,8 @@ export function ProductCard({ product }: ProductCardProps) {
             <Badge variant="secondary" className="text-xs">
               {product.category}
             </Badge>
-            <Badge variant={product.stock_quantity > 0 ? "default" : "destructive"} className="text-xs">
-              {product.stock_quantity > 0 ? "In Stock" : "Out of Stock"}
+            <Badge variant={getTotalStock() > 0 ? "default" : "destructive"} className="text-xs">
+              {getTotalStock() > 0 ? "In Stock" : "Out of Stock"}
             </Badge>
           </div>
           <Link to={`/product/${product.id}`}>
