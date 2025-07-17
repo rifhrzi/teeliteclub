@@ -43,16 +43,24 @@ serve(async (req) => {
     
     console.log('Midtrans environment:', environment);
     console.log('Server key exists:', !!serverKey);
+    console.log('Server key prefix:', serverKey ? serverKey.substring(0, 8) + '...' : 'none');
+    
+    if (!serverKey) {
+      throw new Error('MIDTRANS_SERVER_KEY environment variable is not configured. Please add your Midtrans server key in Supabase secrets.');
+    }
+
+    // Validate server key format based on environment
+    if (isProduction && !serverKey.startsWith('SB-Mid-server-')) {
+      throw new Error('Production environment requires a production server key starting with "SB-Mid-server-"');
+    }
+    
+    if (!isProduction && !serverKey.startsWith('SB-Mid-server-')) {
+      throw new Error('Sandbox environment requires a sandbox server key starting with "SB-Mid-server-"');
+    }
     
     const snapUrl = isProduction 
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
-
-    console.log('Snap URL:', snapUrl);
-
-    if (!serverKey) {
-      throw new Error('Midtrans server key not configured');
-    }
 
     // Create order in database first
     const supabaseService = createClient(
