@@ -70,6 +70,13 @@ const ProductManagement = () => {
     is_active: true,
     ukuran: ["S", "M", "L", "XL", "XXL"]
   });
+  const [sizeStocks, setSizeStocks] = useState<Record<string, number>>({
+    S: 0,
+    M: 0,
+    L: 0,
+    XL: 0,
+    XXL: 0
+  });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -131,12 +138,19 @@ const ProductManagement = () => {
       is_active: true,
       ukuran: ["S", "M", "L", "XL", "XXL"]
     });
+    setSizeStocks({
+      S: 0,
+      M: 0,
+      L: 0,
+      XL: 0,
+      XXL: 0
+    });
     setEditingProduct(null);
     setSelectedFile(null);
     setUploading(false);
   };
 
-  const openEditDialog = (product: Product) => {
+  const openEditDialog = async (product: Product) => {
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -148,6 +162,40 @@ const ProductManagement = () => {
       is_active: product.is_active,
       ukuran: product.ukuran || ["S", "M", "L", "XL", "XXL"]
     });
+
+    // Load existing size stocks
+    try {
+      const { data: productSizes, error } = await supabase
+        .from('product_sizes')
+        .select('ukuran, stok')
+        .eq('product_id', product.id);
+
+      if (error) throw error;
+
+      const newSizeStocks: Record<string, number> = {
+        S: 0,
+        M: 0,
+        L: 0,
+        XL: 0,
+        XXL: 0
+      };
+
+      productSizes?.forEach(size => {
+        newSizeStocks[size.ukuran] = size.stok || 0;
+      });
+
+      setSizeStocks(newSizeStocks);
+    } catch (error) {
+      logger.error('Failed to load product sizes', error);
+      setSizeStocks({
+        S: 0,
+        M: 0,
+        L: 0,
+        XL: 0,
+        XXL: 0
+      });
+    }
+
     setIsDialogOpen(true);
   };
 
@@ -231,14 +279,44 @@ const ProductManagement = () => {
           .eq('id', editingProduct.id);
 
         if (error) throw error;
+
+        // Update product sizes
+        for (const [size, stock] of Object.entries(sizeStocks)) {
+          const { error: sizeError } = await supabase
+            .from('product_sizes')
+            .upsert({
+              product_id: editingProduct.id,
+              ukuran: size,
+              stok: stock
+            });
+
+          if (sizeError) throw sizeError;
+        }
+
         toast.success('Produk berhasil diperbarui');
       } else {
         // Create new product
-        const { error } = await supabase
+        const { data: newProduct, error } = await supabase
           .from('products')
-          .insert([productData]);
+          .insert([productData])
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Create product sizes
+        const sizesToInsert = Object.entries(sizeStocks).map(([size, stock]) => ({
+          product_id: newProduct.id,
+          ukuran: size,
+          stok: stock
+        }));
+
+        const { error: sizesError } = await supabase
+          .from('product_sizes')
+          .insert(sizesToInsert);
+
+        if (sizesError) throw sizesError;
+
         toast.success('Produk berhasil ditambahkan');
       }
 
@@ -361,28 +439,45 @@ const ProductManagement = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Harga *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                      placeholder="Harga"
-                      required
-                    />
+                <div className="space-y-2">
+                  <Label htmlFor="price">Harga *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    placeholder="Harga"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Stok per Ukuran</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                    {formData.ukuran.map((size) => (
+                      <div key={size} className="space-y-2">
+                        <Label htmlFor={`stock-${size}`} className="text-sm font-medium">
+                          {size}
+                        </Label>
+                        <Input
+                          id={`stock-${size}`}
+                          type="number"
+                          min="0"
+                          value={sizeStocks[size] || 0}
+                          onChange={(e) => 
+                            setSizeStocks(prev => ({
+                              ...prev,
+                              [size]: parseInt(e.target.value) || 0
+                            }))
+                          }
+                          placeholder="0"
+                          className="text-center"
+                        />
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="stock">Stok</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      value={formData.stock_quantity}
-                      onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
-                      placeholder="Jumlah stok"
-                    />
+                  <div className="text-sm text-muted-foreground">
+                    Total stok: {Object.values(sizeStocks).reduce((total, stock) => total + stock, 0)}
                   </div>
                 </div>
 
