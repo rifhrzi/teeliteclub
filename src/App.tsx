@@ -19,6 +19,7 @@ import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
 import Account from "./pages/Account";
 import Checkout from "./pages/Checkout";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/account" element={<Account />} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

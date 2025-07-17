@@ -57,78 +57,42 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      // Generate order number
-      const { data: orderNumberData } = await supabase.rpc('generate_order_number');
-      
       const orderData = {
-        user_id: user.id,
-        order_number: orderNumberData,
         total: getCartTotal(),
         nama_pembeli: formData.nama_pembeli,
         email_pembeli: formData.email_pembeli,
         telepon_pembeli: formData.telepon_pembeli,
         shipping_address: formData.shipping_address,
-        payment_method: formData.payment_method,
+        payment_method: 'midtrans', // Always use Midtrans
         shipping_method: formData.shipping_method,
         status: 'pending'
       };
 
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert([orderData])
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Create order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        jumlah: item.quantity,
-        harga: item.product?.price || 0,
-        ukuran: item.ukuran
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Update product stock quantities
-      for (const item of items) {
-        const { data: product, error: productError } = await supabase
-          .from('products')
-          .select('stock_quantity')
-          .eq('id', item.product_id)
-          .single();
-
-        if (productError) {
-          console.error('Error fetching product:', productError);
-          continue;
+      // Create Midtrans payment
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
+        'create-midtrans-payment',
+        {
+          body: {
+            orderData,
+            items
+          }
         }
+      );
 
-        const newStock = Math.max(0, product.stock_quantity - item.quantity);
-        
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({ stock_quantity: newStock })
-          .eq('id', item.product_id);
+      if (paymentError) throw paymentError;
 
-        if (updateError) {
-          console.error('Error updating stock:', updateError);
-        }
-      }
-
-      // Clear cart
+      // Clear cart after successful payment creation
       await clearCart();
 
-      toast.success('Pesanan berhasil dibuat!');
-      navigate('/account');
+      // Redirect to Midtrans payment page
+      if (paymentData.redirect_url) {
+        window.location.href = paymentData.redirect_url;
+      } else {
+        toast.error('Gagal membuat pembayaran');
+      }
     } catch (error) {
-      console.error('Error creating order:', error);
-      toast.error('Gagal membuat pesanan');
+      console.error('Error creating payment:', error);
+      toast.error('Gagal membuat pembayaran');
     } finally {
       setLoading(false);
     }
@@ -249,20 +213,15 @@ const Checkout = () => {
 
                 <div>
                   <Label>Metode Pembayaran</Label>
-                  <RadioGroup 
-                    value={formData.payment_method} 
-                    onValueChange={(value) => setFormData({...formData, payment_method: value})}
-                    className="mt-2"
-                  >
+                  <div className="mt-2 p-4 border rounded-lg bg-muted/50">
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="transfer" id="transfer" />
-                      <Label htmlFor="transfer">Transfer Bank</Label>
+                      <div className="w-4 h-4 rounded-full bg-primary"></div>
+                      <Label className="font-medium">Midtrans Payment Gateway</Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="cod" id="cod" />
-                      <Label htmlFor="cod">Bayar di Tempat (COD)</Label>
-                    </div>
-                  </RadioGroup>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Pembayaran aman dengan berbagai metode: Transfer Bank, E-Wallet, Kartu Kredit/Debit
+                    </p>
+                  </div>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
