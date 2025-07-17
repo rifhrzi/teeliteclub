@@ -454,30 +454,37 @@ const ProductManagement = () => {
                 <div className="space-y-4">
                   <Label>Stok per Ukuran</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                    {formData.ukuran.map((size) => (
-                      <div key={size} className="space-y-2">
-                        <Label htmlFor={`stock-${size}`} className="text-sm font-medium">
-                          {size}
-                        </Label>
-                        <Input
-                          id={`stock-${size}`}
-                          type="number"
-                          min="0"
-                          value={sizeStocks[size] || 0}
-                          onChange={(e) => 
-                            setSizeStocks(prev => ({
-                              ...prev,
-                              [size]: parseInt(e.target.value) || 0
-                            }))
-                          }
-                          placeholder="0"
-                          className="text-center"
-                        />
-                      </div>
-                    ))}
+                    {formData.ukuran.map((size) => {
+                      console.log('Rendering size input for:', size, 'Stock:', sizeStocks[size]);
+                      return (
+                        <div key={size} className="space-y-2">
+                          <Label htmlFor={`stock-${size}`} className="text-sm font-medium">
+                            {size}
+                          </Label>
+                          <Input
+                            id={`stock-${size}`}
+                            type="number"
+                            min="0"
+                            value={sizeStocks[size] || 0}
+                            onChange={(e) => {
+                              console.log('Changing stock for size:', size, 'to:', e.target.value);
+                              setSizeStocks(prev => ({
+                                ...prev,
+                                [size]: parseInt(e.target.value) || 0
+                              }));
+                            }}
+                            placeholder="0"
+                            className="text-center"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Total stok: {Object.values(sizeStocks).reduce((total, stock) => total + stock, 0)}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Debug - sizeStocks: {JSON.stringify(sizeStocks)}
                   </div>
                 </div>
 
