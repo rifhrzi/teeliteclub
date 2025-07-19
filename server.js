@@ -31,7 +31,7 @@ app.use(helmet({
         "https://app.midtrans.com",
         "https://api.midtrans.com"
       ],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "https:"],
       connectSrc: [

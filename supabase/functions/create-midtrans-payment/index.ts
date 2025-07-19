@@ -35,6 +35,13 @@ serve(async (req) => {
 
   try {
     console.log('Starting Midtrans payment creation...');
+    console.log('Environment check:', {
+      supabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+      supabaseAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY'),
+      midtransServerKey: !!Deno.env.get('MIDTRANS_SERVER_KEY'),
+      midtransEnv: Deno.env.get('MIDTRANS_ENVIRONMENT'),
+      allowedOrigin: Deno.env.get('ALLOWED_ORIGIN')
+    });
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -42,18 +49,37 @@ serve(async (req) => {
     );
 
     // Authenticate user
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authorization header missing');
+    }
     
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token received:', token ? 'exists' : 'missing');
+    
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError) {
+      console.error('Auth error:', authError);
+      throw new Error(`Authentication failed: ${authError.message}`);
+    }
+    
+    const user = data.user;
     if (!user?.email) {
-      throw new Error('User not authenticated');
+      throw new Error('User not authenticated - no user data');
     }
 
     console.log('User authenticated:', user.email);
 
-    const { orderData, items }: { orderData: OrderData; items: CartItem[] } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log('Request body parsed successfully');
+    } catch (error) {
+      console.error('Failed to parse request body:', error);
+      throw new Error('Invalid request body format');
+    }
+
+    const { orderData, items }: { orderData: OrderData; items: CartItem[] } = requestBody;
     console.log('Order data received:', orderData);
     console.log('Items count:', items?.length);
 
