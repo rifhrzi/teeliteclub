@@ -47,7 +47,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Load from localStorage for guest users
         const localCart = localStorage.getItem('cart');
         if (localCart) {
-          setItems(JSON.parse(localCart));
+          try {
+            const parsedCart = JSON.parse(localCart);
+            // Validate cart structure
+            if (Array.isArray(parsedCart)) {
+              const validItems = parsedCart.filter(item => 
+                item && 
+                typeof item.product_id === 'string' && 
+                typeof item.quantity === 'number' && 
+                item.quantity > 0 &&
+                typeof item.ukuran === 'string'
+              );
+              setItems(validItems);
+            }
+          } catch (error) {
+            console.error('Invalid cart data in localStorage:', error);
+            localStorage.removeItem('cart');
+          }
         }
         return;
       }
@@ -56,15 +72,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .from('cart_items')
         .select(`
           *,
-          product:products(id, name, price, image_url, gambar)
+          products!cart_items_product_id_fkey(id, name, price, image_url, gambar)
         `)
         .eq('user_id', user.id);
 
       if (error) throw error;
-      setItems(data || []);
+      // Transform the data to match expected structure
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        product: item.products
+      }));
+      setItems(transformedData);
     } catch (error) {
       console.error('Error loading cart:', error);
-      toast.error('Gagal memuat keranjang');
+      // Don't show toast error for initial cart load to avoid spam
+      // Just log it and set empty cart
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -72,14 +95,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = async (productId: string, ukuran: string, quantity = 1) => {
     try {
+      // CRITICAL: Check stock availability first
+      const { data: stockData, error: stockError } = await supabase
+        .from('product_sizes')
+        .select('stok')
+        .eq('product_id', productId)
+        .eq('ukuran', ukuran)
+        .single();
+
+      if (stockError) {
+        console.error('Error checking stock:', stockError);
+        toast.error('Gagal memeriksa stok produk');
+        return;
+      }
+
+      if (!stockData || stockData.stok < quantity) {
+        toast.error(`Stok tidak mencukupi. Stok tersedia: ${stockData?.stok || 0}`);
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        // Handle guest cart in localStorage
+        // Handle guest cart in localStorage with stock validation
         const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
         const existingItem = localCart.find((item: CartItem) => 
           item.product_id === productId && item.ukuran === ukuran
         );
+
+        const totalQuantityRequested = existingItem ? existingItem.quantity + quantity : quantity;
+        
+        // Validate total quantity against available stock
+        if (totalQuantityRequested > stockData.stok) {
+          toast.error(`Stok tidak mencukupi. Stok tersedia: ${stockData.stok}, di keranjang: ${existingItem?.quantity || 0}`);
+          return;
+        }
 
         if (existingItem) {
           existingItem.quantity += quantity;
@@ -106,7 +156,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Check if item already exists in cart
+      // Use upsert to handle both insert and update cases
       const { data: existingItems } = await supabase
         .from('cart_items')
         .select('*')
@@ -117,9 +167,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existingItems && existingItems.length > 0) {
         // Update existing item
         const newQuantity = existingItems[0].quantity + quantity;
-        await updateQuantity(existingItems[0].id, newQuantity);
+        if (newQuantity > stockData.stok) {
+          toast.error(`Stok tidak mencukupi. Stok tersedia: ${stockData.stok}, di keranjang: ${existingItems[0].quantity}`);
+          return;
+        }
+        
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity: newQuantity })
+          .eq('id', existingItems[0].id);
+
+        if (error) throw error;
       } else {
-        // Add new item
+        // Insert new item
         const { error } = await supabase
           .from('cart_items')
           .insert([{
@@ -129,10 +189,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
             ukuran
           }]);
 
-        if (error) throw error;
-        await loadCartItems();
-        toast.success('Produk ditambahkan ke keranjang!');
+        if (error) {
+          // If we get a unique constraint violation, it means another thread inserted the same item
+          // Let's try to update it instead
+          if (error.code === '23505') {
+            const { data: existingItem } = await supabase
+              .from('cart_items')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('product_id', productId)
+              .eq('ukuran', ukuran)
+              .single();
+
+            if (existingItem) {
+              const newQuantity = existingItem.quantity + quantity;
+              if (newQuantity > stockData.stok) {
+                toast.error(`Stok tidak mencukupi. Stok tersedia: ${stockData.stok}, di keranjang: ${existingItem.quantity}`);
+                return;
+              }
+              
+              const { error: updateError } = await supabase
+                .from('cart_items')
+                .update({ quantity: newQuantity })
+                .eq('id', existingItem.id);
+
+              if (updateError) throw updateError;
+            }
+          } else {
+            throw error;
+          }
+        }
       }
+      
+      await loadCartItems();
+      toast.success('Produk ditambahkan ke keranjang!');
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Gagal menambahkan ke keranjang');
@@ -144,7 +234,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
+        // For guest users, get cart item details to validate stock
         const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const cartItem = localCart.find((item: CartItem) => item.id === itemId);
+        
+        if (cartItem && quantity > 0) {
+          // Validate stock for guest cart
+          const { data: stockData } = await supabase
+            .from('product_sizes')
+            .select('stok')
+            .eq('product_id', cartItem.product_id)
+            .eq('ukuran', cartItem.ukuran)
+            .single();
+
+          if (!stockData || quantity > stockData.stok) {
+            toast.error(`Stok tidak mencukupi. Stok tersedia: ${stockData?.stok || 0}`);
+            return;
+          }
+        }
+
         const updatedCart = localCart.map((item: CartItem) =>
           item.id === itemId ? { ...item, quantity } : item
         );
@@ -158,6 +266,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      await updateQuantityWithValidation(itemId, quantity);
+    } catch (error) {
+      console.error('Error updating cart:', error);
+      toast.error('Gagal mengupdate keranjang');
+    }
+  };
+
+  const updateQuantityWithValidation = async (itemId: string, quantity: number) => {
+    try {
+      // Get cart item details to validate stock
+      const { data: cartItem } = await supabase
+        .from('cart_items')
+        .select('product_id, ukuran')
+        .eq('id', itemId)
+        .single();
+
+      if (!cartItem) {
+        throw new Error('Cart item not found');
+      }
+
+      // Validate stock availability
+      const { data: stockData, error: stockError } = await supabase
+        .from('product_sizes')
+        .select('stok')
+        .eq('product_id', cartItem.product_id)
+        .eq('ukuran', cartItem.ukuran)
+        .single();
+
+      if (stockError) {
+        throw new Error('Failed to check stock');
+      }
+
+      if (!stockData || quantity > stockData.stok) {
+        toast.error(`Stok tidak mencukupi. Stok tersedia: ${stockData?.stok || 0}`);
+        return;
+      }
+
+      // Update quantity if stock is sufficient
       const { error } = await supabase
         .from('cart_items')
         .update({ quantity })
@@ -165,8 +311,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
       await loadCartItems();
+      toast.success('Kuantitas berhasil diupdate!');
     } catch (error) {
-      console.error('Error updating cart:', error);
+      console.error('Error updating cart with validation:', error);
       toast.error('Gagal mengupdate keranjang');
     }
   };

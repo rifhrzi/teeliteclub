@@ -1,16 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, ShoppingCart, Package, CreditCard, User } from "lucide-react";
+import {
+  ArrowLeft,
+  ShoppingCart,
+  Package,
+  CreditCard,
+} from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
+import { ProductHeader } from "@/components/layout/ProductHeader";
 
 interface Product {
   id: string;
@@ -35,20 +46,14 @@ const ProductDetail = () => {
   const { toast } = useToast();
   const { addToCart, getCartItemsCount } = useCart();
   const { user, profile, signOut } = useAuth();
-  
+
   const [product, setProduct] = useState<Product | null>(null);
   const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
 
-  useEffect(() => {
-    if (id) {
-      fetchProduct();
-    }
-  }, [id]);
-
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("products")
@@ -79,16 +84,46 @@ const ProductDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, toast, navigate]);
 
-  const getTotalStock = () => {
+  useEffect(() => {
+    if (id) {
+      fetchProduct();
+    }
+  }, [id, fetchProduct]);
+
+  const totalStock = useMemo(() => {
     return productSizes.reduce((total, size) => total + size.stok, 0);
-  };
+  }, [productSizes]);
 
-  const getSelectedSizeStock = () => {
-    const sizeData = productSizes.find(size => size.ukuran === selectedSize);
+  const uniqueSizes = useMemo(() => {
+    const sizeMap = new Map();
+    productSizes.forEach((size) => {
+      if (!sizeMap.has(size.ukuran)) {
+        sizeMap.set(size.ukuran, size.stok);
+      } else {
+        // If duplicate, sum the stock
+        sizeMap.set(size.ukuran, sizeMap.get(size.ukuran) + size.stok);
+      }
+    });
+
+    return Array.from(sizeMap.entries()).map(([ukuran, stok]) => ({
+      ukuran,
+      stok,
+    }));
+  }, [productSizes]);
+
+  const selectedSizeStock = useMemo(() => {
+    const sizeData = uniqueSizes.find((size) => size.ukuran === selectedSize);
     return sizeData ? sizeData.stok : 0;
-  };
+  }, [uniqueSizes, selectedSize]);
+
+  // Reset quantity when size changes to prevent invalid state
+  useEffect(() => {
+    if (selectedSize && selectedSizeStock > 0) {
+      setQuantity(Math.min(quantity, selectedSizeStock));
+    }
+  }, [selectedSize, selectedSizeStock, quantity]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -159,66 +194,12 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
-          <div className="container mx-auto px-4">
-            <div className="flex h-16 items-center justify-between">
-              {/* Logo */}
-              <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-                TEELITECLUB
-              </Link>
-
-              {/* Right side - Cart, User */}
-              <div className="flex items-center space-x-6">
-                {/* Cart */}
-                <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
-                  <Link to="/cart">
-                    <ShoppingCart className="h-6 w-6" />
-                    {getCartItemsCount() > 0 && <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
-                        {getCartItemsCount()}
-                      </Badge>}
-                  </Link>
-                </Button>
-
-                {/* User Account */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
-                      <User className="h-6 w-6" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {user ? (
-                      <>
-                        <DropdownMenuItem disabled>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{profile?.nama || 'User'}</span>
-                            <span className="text-xs text-muted-foreground">{user.email}</span>
-                          </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link to="/account">My Account</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to="/orders">My Orders</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={signOut} className="text-destructive">
-                          Logout
-                        </DropdownMenuItem>
-                      </>
-                    ) : (
-                      <DropdownMenuItem asChild>
-                        <Link to="/auth">Login / Register</Link>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-        </header>
+        <ProductHeader 
+          getCartItemsCount={getCartItemsCount}
+          user={user}
+          profile={profile}
+          signOut={signOut}
+        />
         <div className="container mx-auto px-4 py-8">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-muted rounded w-32"></div>
@@ -240,73 +221,20 @@ const ProductDetail = () => {
   if (!product) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
-          <div className="container mx-auto px-4">
-            <div className="flex h-16 items-center justify-between">
-              {/* Logo */}
-              <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-                TEELITECLUB
-              </Link>
-
-              {/* Right side - Cart, User */}
-              <div className="flex items-center space-x-6">
-                {/* Cart */}
-                <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
-                  <Link to="/cart">
-                    <ShoppingCart className="h-6 w-6" />
-                    {getCartItemsCount() > 0 && <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
-                        {getCartItemsCount()}
-                      </Badge>}
-                  </Link>
-                </Button>
-
-                {/* User Account */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
-                      <User className="h-6 w-6" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {user ? (
-                      <>
-                        <DropdownMenuItem disabled>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{profile?.nama || 'User'}</span>
-                            <span className="text-xs text-muted-foreground">{user.email}</span>
-                          </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link to="/account">My Account</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to="/orders">My Orders</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={signOut} className="text-destructive">
-                          Logout
-                        </DropdownMenuItem>
-                      </>
-                    ) : (
-                      <DropdownMenuItem asChild>
-                        <Link to="/auth">Login / Register</Link>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-        </header>
+        <ProductHeader 
+          getCartItemsCount={getCartItemsCount}
+          user={user}
+          profile={profile}
+          signOut={signOut}
+        />
         <div className="container mx-auto px-4 py-8">
           <Card>
             <CardContent className="p-8 text-center">
               <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <h2 className="text-2xl font-semibold mb-2">Product not found</h2>
               <p className="text-muted-foreground mb-4">
-                The product you're looking for doesn't exist or has been removed.
+                The product you're looking for doesn't exist or has been
+                removed.
               </p>
               <Button onClick={() => navigate("/shop")}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -321,72 +249,17 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-[hsl(var(--header-footer))] text-[hsl(var(--header-footer-foreground))]">
-        <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
-            <Link to="/" className="text-2xl font-etna font-black text-[hsl(var(--header-footer-foreground))] tracking-wider">
-              TEELITECLUB
-            </Link>
-
-            {/* Right side - Cart, User */}
-            <div className="flex items-center space-x-6">
-              {/* Cart */}
-              <Button variant="ghost" size="icon" className="relative text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10" asChild>
-                <Link to="/cart">
-                  <ShoppingCart className="h-6 w-6" />
-                  {getCartItemsCount() > 0 && <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">
-                      {getCartItemsCount()}
-                    </Badge>}
-                </Link>
-              </Button>
-
-              {/* User Account */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-[hsl(var(--header-footer-foreground))] hover:bg-[hsl(var(--header-footer-foreground))]/10">
-                    <User className="h-6 w-6" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {user ? (
-                    <>
-                      <DropdownMenuItem disabled>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{profile?.nama || 'User'}</span>
-                          <span className="text-xs text-muted-foreground">{user.email}</span>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/account">My Account</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/orders">My Orders</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={signOut} className="text-destructive">
-                        Logout
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
-                    <DropdownMenuItem asChild>
-                      <Link to="/auth">Login / Register</Link>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ProductHeader 
+        getCartItemsCount={getCartItemsCount}
+        user={user}
+        profile={profile}
+        signOut={signOut}
+      />
       <div className="container mx-auto px-4 py-8">
         <Button
           variant="ghost"
           onClick={() => navigate("/shop")}
-          className="mb-6"
-        >
+          className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Shop
         </Button>
@@ -408,8 +281,9 @@ const ProductDetail = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary">{product.category}</Badge>
-                <Badge variant={getTotalStock() > 0 ? "default" : "destructive"}>
-                  {getTotalStock() > 0 ? "In Stock" : "Out of Stock"}
+                <Badge
+                  variant={totalStock > 0 ? "default" : "destructive"}>
+                  {totalStock > 0 ? "In Stock" : "Out of Stock"}
                 </Badge>
               </div>
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
@@ -425,9 +299,8 @@ const ProductDetail = () => {
               </div>
             )}
 
-
             {/* Size Selection */}
-            {product.ukuran && product.ukuran.length > 0 && (
+            {productSizes.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Size</h3>
                 <Select value={selectedSize} onValueChange={setSelectedSize}>
@@ -435,13 +308,12 @@ const ProductDetail = () => {
                     <SelectValue placeholder="Select a size" />
                   </SelectTrigger>
                   <SelectContent>
-                    {productSizes.map((sizeData) => (
-                      <SelectItem 
-                        key={sizeData.ukuran} 
+                    {uniqueSizes.map((sizeData) => (
+                      <SelectItem
+                        key={sizeData.ukuran}
                         value={sizeData.ukuran}
-                        disabled={sizeData.stok === 0}
-                      >
-                        {sizeData.ukuran} {sizeData.stok === 0 ? "(Out of Stock)" : `(${sizeData.stok} left)`}
+                        disabled={sizeData.stok === 0}>
+                        {sizeData.ukuran}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -452,15 +324,17 @@ const ProductDetail = () => {
             {/* Quantity Selection */}
             <div>
               <h3 className="text-lg font-semibold mb-2">Quantity</h3>
-              <Select 
-                value={quantity.toString()} 
-                onValueChange={(value) => setQuantity(parseInt(value))}
-              >
+              <Select
+                value={quantity.toString()}
+                onValueChange={(value) => setQuantity(parseInt(value))}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: Math.min(10, getSelectedSizeStock()) }, (_, i) => i + 1).map((num) => (
+                  {Array.from(
+                    { length: Math.min(10, selectedSizeStock) },
+                    (_, i) => i + 1
+                  ).map((num) => (
                     <SelectItem key={num} value={num.toString()}>
                       {num}
                     </SelectItem>
@@ -473,29 +347,35 @@ const ProductDetail = () => {
             <div className="flex flex-col gap-3">
               <Button
                 onClick={handleDirectCheckout}
-                disabled={getTotalStock() === 0 || !selectedSize || getSelectedSizeStock() === 0}
+                disabled={
+                  totalStock === 0 ||
+                  !selectedSize ||
+                  selectedSizeStock === 0
+                }
                 className="w-full"
-                size="lg"
-              >
+                size="lg">
                 <CreditCard className="w-4 h-4 mr-2" />
-                {getTotalStock() === 0 ? "Out of Stock" : "Beli Sekarang"}
+                {totalStock === 0 ? "Out of Stock" : "Beli Sekarang"}
               </Button>
-              
+
               <Button
                 onClick={handleAddToCart}
-                disabled={getTotalStock() === 0 || !selectedSize || getSelectedSizeStock() === 0}
+                disabled={
+                  totalStock === 0 ||
+                  !selectedSize ||
+                  selectedSizeStock === 0
+                }
                 variant="outline"
                 className="w-full"
-                size="lg"
-              >
+                size="lg">
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                {getTotalStock() === 0 ? "Out of Stock" : "Add to Cart"}
+                {totalStock === 0 ? "Out of Stock" : "Add to Cart"}
               </Button>
             </div>
           </div>
         </div>
       </div>
-      
+
       <Footer />
     </div>
   );

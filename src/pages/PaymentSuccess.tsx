@@ -11,7 +11,7 @@ const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<{ id: string; order_number: string; status: string; total: number; created_at: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const orderId = searchParams.get('order_id');

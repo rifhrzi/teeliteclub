@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Eye, Search, Package, Truck, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Order {
   id: string;
@@ -28,12 +29,21 @@ interface Order {
 
 const Orders = () => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const { toast } = useToast();
+
+  // Security check - ensure user is admin
+  useEffect(() => {
+    if (profile && profile.role !== 'admin') {
+      navigate('/');
+      return;
+    }
+  }, [profile, navigate]);
 
   const statusOptions = [
     { value: "all", label: "All Orders" },

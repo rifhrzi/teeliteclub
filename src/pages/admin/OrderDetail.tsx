@@ -105,7 +105,7 @@ const OrderDetail = () => {
         .from("order_items")
         .select(`
           *,
-          products (
+          product:products!product_id (
             name,
             image_url,
             gambar

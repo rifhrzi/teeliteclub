@@ -14,7 +14,7 @@ export class AppError extends Error {
 }
 
 // Handle authentication errors with user-friendly messages
-export const handleAuthError = (error: any): string => {
+export const handleAuthError = (error: Error | { message?: string; code?: string }): string => {
   logger.error('Authentication error', error);
   
   if (error?.message?.includes('Invalid login credentials')) {
@@ -38,7 +38,7 @@ export const handleAuthError = (error: any): string => {
 };
 
 // Handle database errors with user-friendly messages
-export const handleDatabaseError = (error: any, operation: string): string => {
+export const handleDatabaseError = (error: Error | { code?: string; message?: string }, operation: string): string => {
   logger.error(`Database error during ${operation}`, error);
   
   if (error?.code === '23505') { // Unique constraint violation
@@ -58,7 +58,7 @@ export const handleDatabaseError = (error: any, operation: string): string => {
 };
 
 // Safe error handler that doesn't expose sensitive information
-export const handleError = (error: any, userMessage?: string): void => {
+export const handleError = (error: Error | AppError | unknown, userMessage?: string): void => {
   if (error instanceof AppError) {
     toast.error(error.userMessage);
     logger.error(error.message, { statusCode: error.statusCode });

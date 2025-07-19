@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run lint)",
+      "Bash(npm run:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(npx vite-bundle-analyzer:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(tsc --noEmit)",
+      "Bash(supabase link:*)",
+      "Bash(npx supabase link:*)",
+      "Bash(npx supabase projects:*)",
+      "Bash(npx supabase:*)",
+      "Bash(mv:*)",
+      "Bash(taskkill:*)",
+      "Bash(wmic:*)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

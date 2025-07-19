@@ -67,8 +67,15 @@ const Auth = () => {
       toast.error('Password tidak sama');
       return;
     }
-    if (formData.password.length < 6) {
-      toast.error('Password minimal 6 karakter');
+    // Enhanced password validation
+    if (formData.password.length < 8) {
+      toast.error('Password minimal 8 karakter');
+      return;
+    }
+    
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error('Password harus mengandung minimal 1 huruf kecil, 1 huruf besar, 1 angka, dan 1 karakter khusus');
       return;
     }
     setLoading(true);

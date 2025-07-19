@@ -46,13 +46,19 @@ const Account = () => {
     if (user) {
       fetchOrders();
     }
-  }, [user]);
+  }, [user, fetchOrders]);
 
   const fetchOrders = async () => {
     try {
+      if (!user?.id) {
+        console.error('User not authenticated');
+        return;
+      }
+
       const { data, error } = await supabase
         .from("orders")
         .select("id, order_number, total, status, created_at")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

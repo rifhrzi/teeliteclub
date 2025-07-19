@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,22 +7,35 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/hooks/useCart";
 import { AdminRoute } from "@/components/admin/AdminRoute";
+
+// Core pages (loaded immediately)
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Cart from "./pages/Cart";
-import AdminDashboard from "./pages/admin/Dashboard";
-import ProductManagement from "./pages/admin/ProductManagement";
-import AdminOrders from "./pages/admin/Orders";
-import AdminOrderDetail from "./pages/admin/OrderDetail";
-import Users from "./pages/admin/Users";
-import Reports from "./pages/admin/Reports";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
-import Account from "./pages/Account";
-import Checkout from "./pages/Checkout";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
+
+// Auth and user pages (lazy loaded)
+const Auth = lazy(() => import("./pages/Auth"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Account = lazy(() => import("./pages/Account"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const Orders = lazy(() => import("./pages/Orders"));
+
+// Admin pages (lazy loaded - biggest impact on bundle size)
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const ProductManagement = lazy(() => import("./pages/admin/ProductManagement"));
+const AdminOrders = lazy(() => import("./pages/admin/Orders"));
+const AdminOrderDetail = lazy(() => import("./pages/admin/OrderDetail"));
+const Users = lazy(() => import("./pages/admin/Users"));
+const Reports = lazy(() => import("./pages/admin/Reports"));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -33,25 +47,27 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/account" element={<Account />} />
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              <Route path="/admin/products" element={<AdminRoute><ProductManagement /></AdminRoute>} />
-              <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
-              <Route path="/admin/orders/:id" element={<AdminRoute><AdminOrderDetail /></AdminRoute>} />
-              <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
-              <Route path="/admin/reports" element={<AdminRoute><Reports /></AdminRoute>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/shop" element={<Shop />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/account" element={<Account />} />
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/products" element={<AdminRoute><ProductManagement /></AdminRoute>} />
+                <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+                <Route path="/admin/orders/:id" element={<AdminRoute><AdminOrderDetail /></AdminRoute>} />
+                <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
+                <Route path="/admin/reports" element={<AdminRoute><Reports /></AdminRoute>} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </CartProvider>

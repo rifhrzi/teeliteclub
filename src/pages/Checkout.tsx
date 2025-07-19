@@ -57,6 +57,28 @@ const Checkout = () => {
 
     setLoading(true);
     try {
+      // CRITICAL: Validate stock for all items before proceeding
+      console.log('Validating stock for checkout...');
+      for (const item of items) {
+        const { data: stockData, error: stockError } = await supabase
+          .from('product_sizes')
+          .select('stok')
+          .eq('product_id', item.product_id)
+          .eq('ukuran', item.ukuran)
+          .single();
+
+        if (stockError) {
+          console.error('Stock validation error:', stockError);
+          toast.error('Gagal memvalidasi stok produk');
+          return;
+        }
+
+        if (!stockData || stockData.stok < item.quantity) {
+          toast.error(`Stok tidak mencukupi untuk ${item.product?.name} ukuran ${item.ukuran}. Stok tersedia: ${stockData?.stok || 0}`);
+          return;
+        }
+      }
+
       const orderData = {
         total: getCartTotal(),
         nama_pembeli: formData.nama_pembeli,

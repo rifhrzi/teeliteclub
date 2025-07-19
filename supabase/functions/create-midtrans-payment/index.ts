@@ -1,9 +1,30 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+interface CartItem {
+  product_id: string;
+  quantity: number;
+  ukuran: string;
+  product?: {
+    price: number;
+    name: string;
+  };
+}
+
+interface OrderData {
+  total: number;
+  nama_lengkap: string;
+  telepon: string;
+  alamat: string;
+  metode_pembayaran: string;
+  shipping_method?: string;
+}
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 serve(async (req) => {
@@ -32,9 +53,75 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.email);
 
-    const { orderData, items } = await req.json();
+    const { orderData, items }: { orderData: OrderData; items: CartItem[] } = await req.json();
     console.log('Order data received:', orderData);
     console.log('Items count:', items?.length);
+
+    // Validate items and recalculate total server-side
+    if (!items || items.length === 0) {
+      throw new Error('No items in cart');
+    }
+
+    // Create service client first
+    const supabaseService = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    );
+
+    // CRITICAL: Validate stock availability for all items
+    console.log('Validating stock for all items...');
+    for (const item of items) {
+      const { data: stockData, error: stockError } = await supabaseService
+        .from('product_sizes')
+        .select('stok')
+        .eq('product_id', item.product_id)
+        .eq('ukuran', item.ukuran)
+        .single();
+
+      if (stockError) {
+        console.error('Stock validation error:', stockError);
+        throw new Error(`Failed to validate stock for product ${item.product_id}`);
+      }
+
+      if (!stockData || stockData.stok < item.quantity) {
+        throw new Error(`Insufficient stock for product ${item.product_id} size ${item.ukuran}. Available: ${stockData?.stok || 0}, Requested: ${item.quantity}`);
+      }
+    }
+
+    // Fetch actual product prices and names from database
+    const productIds = items.map(item => item.product_id);
+    const { data: products, error: productsError } = await supabaseService
+      .from('products')
+      .select('id, price, name')
+      .in('id', productIds);
+
+    if (productsError) {
+      throw new Error('Failed to validate product prices');
+    }
+
+    // Calculate actual total based on database prices
+    let calculatedTotal = 0;
+    const productPriceMap = new Map(products?.map(p => [p.id, p.price]) || []);
+    const productNameMap = new Map(products?.map(p => [p.id, p.name]) || []);
+    
+    for (const item of items) {
+      const actualPrice = productPriceMap.get(item.product_id);
+      if (!actualPrice) {
+        throw new Error(`Product ${item.product_id} not found`);
+      }
+      calculatedTotal += actualPrice * item.quantity;
+    }
+
+    // Add shipping cost - check shipping_method if available, fallback to metode_pembayaran 
+    const shippingCost = (orderData.shipping_method === 'express' || orderData.metode_pembayaran === 'express') ? 20000 : 0;
+    calculatedTotal += shippingCost;
+
+    // Validate submitted total against calculated total
+    if (Math.abs(orderData.total - calculatedTotal) > 0.01) {
+      console.error(`Price validation failed: submitted ${orderData.total}, calculated ${calculatedTotal}`);
+      throw new Error('Price validation failed');
+    }
 
     // Midtrans configuration
     const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY');
@@ -62,12 +149,7 @@ serve(async (req) => {
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
 
-    // Create order in database first
-    const supabaseService = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { persistSession: false } }
-    );
+    // Create order in database
 
     // Generate order number
     console.log('Generating order number...');
@@ -95,12 +177,12 @@ serve(async (req) => {
 
     console.log('Order created with ID:', order.id);
 
-    // Create order items
-    const orderItems = items.map((item: any) => ({
+    // Create order items with correct product information
+    const orderItems = items.map((item: CartItem) => ({
       order_id: order.id,
       product_id: item.product_id,
       jumlah: item.quantity,
-      harga: item.product?.price || 0,
+      harga: productPriceMap.get(item.product_id) || 0,
       ukuran: item.ukuran
     }));
 
@@ -116,12 +198,79 @@ serve(async (req) => {
 
     console.log('Order items created successfully');
 
+    // CRITICAL: Reserve stock immediately to prevent race conditions
+    console.log('Reserving stock for order items...');
+    const stockReservationPromises = items.map(async (item: CartItem) => {
+      console.log(`Reserving stock for product ${item.product_id}, size ${item.ukuran}, quantity ${item.quantity}`);
+      
+      // Use atomic operation to reduce stock
+      const { data: currentStock, error: stockError } = await supabaseService
+        .from('product_sizes')
+        .select('stok')
+        .eq('product_id', item.product_id)
+        .eq('ukuran', item.ukuran)
+        .single();
+
+      if (stockError) {
+        throw new Error(`Failed to get current stock for product ${item.product_id}`);
+      }
+
+      if (!currentStock || currentStock.stok < item.quantity) {
+        throw new Error(`Insufficient stock for product ${item.product_id} size ${item.ukuran}. Available: ${currentStock?.stok || 0}, Requested: ${item.quantity}`);
+      }
+
+      const newStock = currentStock.stok - item.quantity;
+      
+      const { error: updateError } = await supabaseService
+        .from('product_sizes')
+        .update({ stok: newStock })
+        .eq('product_id', item.product_id)
+        .eq('ukuran', item.ukuran);
+
+      if (updateError) {
+        throw new Error(`Failed to reserve stock for product ${item.product_id}: ${updateError.message}`);
+      }
+
+      console.log(`Stock reserved for product ${item.product_id}, size ${item.ukuran}: ${currentStock.stok} -> ${newStock}`);
+      return { product_id: item.product_id, ukuran: item.ukuran, reserved: item.quantity };
+    });
+
+    try {
+      await Promise.all(stockReservationPromises);
+      console.log('All stock reservations successful');
+    } catch (reservationError) {
+      console.error('Stock reservation failed:', reservationError);
+      
+      // Rollback: Delete the created order and order items
+      await supabaseService.from('order_items').delete().eq('order_id', order.id);
+      await supabaseService.from('orders').delete().eq('id', order.id);
+      
+      throw reservationError;
+    }
+
+    // Update total stock in products table
+    const uniqueProductIds = [...new Set(items.map(item => item.product_id))];
+    for (const productId of uniqueProductIds) {
+      const { data: allSizes } = await supabaseService
+        .from('product_sizes')
+        .select('stok')
+        .eq('product_id', productId);
+
+      if (allSizes) {
+        const totalStock = allSizes.reduce((total, size) => total + (size.stok || 0), 0);
+        await supabaseService
+          .from('products')
+          .update({ stock_quantity: totalStock })
+          .eq('id', productId);
+      }
+    }
+
     // Prepare Midtrans transaction data
-    const itemDetails = items.map((item: any) => ({
+    const itemDetails = items.map((item: CartItem) => ({
       id: item.product_id,
-      price: item.product?.price || 0,
+      price: productPriceMap.get(item.product_id) || 0,
       quantity: item.quantity,
-      name: `${item.product?.name} (${item.ukuran})`
+      name: `${productNameMap.get(item.product_id) || 'Unknown Product'} (${item.ukuran})`
     }));
 
     // Add shipping cost if express

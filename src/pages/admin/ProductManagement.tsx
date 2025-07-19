@@ -8,33 +8,39 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
   Upload,
   Package,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,6 +53,7 @@ interface Product {
   image_url?: string;
   gambar?: string[];
   stock_quantity?: number;
+  total_stock?: number; // Calculated total stock from product_sizes
   is_active: boolean;
   ukuran?: string[];
   created_at: string;
@@ -68,14 +75,14 @@ const ProductManagement = () => {
     image_url: "",
     stock_quantity: "",
     is_active: true,
-    ukuran: ["S", "M", "L", "XL", "XXL"]
+    ukuran: ["S", "M", "L", "XL", "XXL"],
   });
   const [sizeStocks, setSizeStocks] = useState<Record<string, number>>({
     S: 0,
     M: 0,
     L: 0,
     XL: 0,
-    XXL: 0
+    XXL: 0,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -94,15 +101,40 @@ const ProductManagement = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProducts(data || []);
+
+      // Calculate total stock for each product from product_sizes table
+      const productsWithStock = await Promise.all(
+        (data || []).map(async (product) => {
+          const { data: sizesData, error: sizesError } = await supabase
+            .from("product_sizes")
+            .select("stok")
+            .eq("product_id", product.id);
+
+          if (sizesError) {
+            logger.error(
+              "Failed to load product sizes for product:",
+              product.id,
+              sizesError
+            );
+            return { ...product, total_stock: 0 };
+          }
+
+          const total_stock =
+            sizesData?.reduce((total, size) => total + (size.stok || 0), 0) ||
+            0;
+          return { ...product, total_stock };
+        })
+      );
+
+      setProducts(productsWithStock);
     } catch (error) {
-      logger.error('Failed to load products', error);
-      toast.error('Gagal memuat produk');
+      logger.error("Failed to load products", error);
+      toast.error("Gagal memuat produk");
     } finally {
       setLoading(false);
     }
@@ -112,15 +144,17 @@ const ProductManagement = () => {
     let filtered = [...products];
 
     if (searchQuery.trim()) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     if (selectedCategory !== "all") {
-      filtered = filtered.filter(product =>
-        product.category.toLowerCase() === selectedCategory.toLowerCase()
+      filtered = filtered.filter(
+        (product) =>
+          product.category.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
@@ -136,14 +170,14 @@ const ProductManagement = () => {
       image_url: "",
       stock_quantity: "",
       is_active: true,
-      ukuran: ["S", "M", "L", "XL", "XXL"]
+      ukuran: ["S", "M", "L", "XL", "XXL"],
     });
     setSizeStocks({
       S: 0,
       M: 0,
       L: 0,
       XL: 0,
-      XXL: 0
+      XXL: 0,
     });
     setEditingProduct(null);
     setSelectedFile(null);
@@ -160,15 +194,15 @@ const ProductManagement = () => {
       image_url: product.image_url || "",
       stock_quantity: product.stock_quantity?.toString() || "0",
       is_active: product.is_active,
-      ukuran: product.ukuran || ["S", "M", "L", "XL", "XXL"]
+      ukuran: product.ukuran || ["S", "M", "L", "XL", "XXL"],
     });
 
     // Load existing size stocks
     try {
       const { data: productSizes, error } = await supabase
-        .from('product_sizes')
-        .select('ukuran, stok')
-        .eq('product_id', product.id);
+        .from("product_sizes")
+        .select("ukuran, stok")
+        .eq("product_id", product.id);
 
       if (error) throw error;
 
@@ -177,22 +211,22 @@ const ProductManagement = () => {
         M: 0,
         L: 0,
         XL: 0,
-        XXL: 0
+        XXL: 0,
       };
 
-      productSizes?.forEach(size => {
+      productSizes?.forEach((size) => {
         newSizeStocks[size.ukuran] = size.stok || 0;
       });
 
       setSizeStocks(newSizeStocks);
     } catch (error) {
-      logger.error('Failed to load product sizes', error);
+      logger.error("Failed to load product sizes", error);
       setSizeStocks({
         S: 0,
         M: 0,
         L: 0,
         XL: 0,
-        XXL: 0
+        XXL: 0,
       });
     }
 
@@ -202,24 +236,26 @@ const ProductManagement = () => {
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}_${Math.random()
+        .toString(36)
+        .substring(2)}.${fileExt}`;
       const filePath = `products/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
+        .from("product-images")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
       return publicUrl;
     } catch (error) {
-      logger.error('Failed to upload image', error);
-      toast.error('Gagal mengunggah gambar');
+      logger.error("Failed to upload image", error);
+      toast.error("Gagal mengunggah gambar");
       return null;
     } finally {
       setUploading(false);
@@ -229,12 +265,13 @@ const ProductManagement = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('Ukuran file maksimal 5MB');
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        toast.error("Ukuran file maksimal 5MB");
         return;
       }
-      if (!file.type.startsWith('image/')) {
-        toast.error('File harus berupa gambar');
+      if (!file.type.startsWith("image/")) {
+        toast.error("File harus berupa gambar");
         return;
       }
       setSelectedFile(file);
@@ -243,9 +280,9 @@ const ProductManagement = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.price || !formData.category) {
-      toast.error('Nama, harga, dan kategori harus diisi');
+      toast.error("Nama, harga, dan kategori harus diisi");
       return;
     }
 
@@ -260,44 +297,56 @@ const ProductManagement = () => {
         }
       }
 
+      const totalStock = calculateTotalStock();
       const productData = {
         name: formData.name,
         description: formData.description || null,
         price: parseFloat(formData.price),
         category: formData.category,
         image_url: imageUrl || null,
-        stock_quantity: parseInt(formData.stock_quantity) || 0,
+        stock_quantity: totalStock, // Use calculated total stock from sizes
         is_active: formData.is_active,
-        ukuran: formData.ukuran
+        ukuran: formData.ukuran,
       };
 
       if (editingProduct) {
         // Update existing product
         const { error } = await supabase
-          .from('products')
+          .from("products")
           .update(productData)
-          .eq('id', editingProduct.id);
+          .eq("id", editingProduct.id);
 
         if (error) throw error;
 
-        // Update product sizes
-        for (const [size, stock] of Object.entries(sizeStocks)) {
-          const { error: sizeError } = await supabase
-            .from('product_sizes')
-            .upsert({
-              product_id: editingProduct.id,
-              ukuran: size,
-              stok: stock
-            });
+        // Update product sizes - delete existing and insert new to avoid duplicates
+        // First, delete all existing size records for this product
+        const { error: deleteError } = await supabase
+          .from("product_sizes")
+          .delete()
+          .eq("product_id", editingProduct.id);
 
-          if (sizeError) throw sizeError;
-        }
+        if (deleteError) throw deleteError;
 
-        toast.success('Produk berhasil diperbarui');
+        // Then insert the new size records
+        const sizesToInsert = Object.entries(sizeStocks).map(
+          ([size, stock]) => ({
+            product_id: editingProduct.id,
+            ukuran: size,
+            stok: stock,
+          })
+        );
+
+        const { error: insertError } = await supabase
+          .from("product_sizes")
+          .insert(sizesToInsert);
+
+        if (insertError) throw insertError;
+
+        toast.success("Produk berhasil diperbarui");
       } else {
         // Create new product
         const { data: newProduct, error } = await supabase
-          .from('products')
+          .from("products")
           .insert([productData])
           .select()
           .single();
@@ -305,27 +354,29 @@ const ProductManagement = () => {
         if (error) throw error;
 
         // Create product sizes
-        const sizesToInsert = Object.entries(sizeStocks).map(([size, stock]) => ({
-          product_id: newProduct.id,
-          ukuran: size,
-          stok: stock
-        }));
+        const sizesToInsert = Object.entries(sizeStocks).map(
+          ([size, stock]) => ({
+            product_id: newProduct.id,
+            ukuran: size,
+            stok: stock,
+          })
+        );
 
         const { error: sizesError } = await supabase
-          .from('product_sizes')
+          .from("product_sizes")
           .insert(sizesToInsert);
 
         if (sizesError) throw sizesError;
 
-        toast.success('Produk berhasil ditambahkan');
+        toast.success("Produk berhasil ditambahkan");
       }
 
       setIsDialogOpen(false);
       resetForm();
       loadProducts();
     } catch (error) {
-      logger.error('Failed to save product', error);
-      toast.error('Gagal menyimpan produk');
+      logger.error("Failed to save product", error);
+      toast.error("Gagal menyimpan produk");
     }
   };
 
@@ -336,39 +387,48 @@ const ProductManagement = () => {
 
     try {
       const { error } = await supabase
-        .from('products')
+        .from("products")
         .delete()
-        .eq('id', productId);
+        .eq("id", productId);
 
       if (error) throw error;
-      toast.success('Produk berhasil dihapus');
+      toast.success("Produk berhasil dihapus");
       loadProducts();
     } catch (error) {
-      logger.error('Failed to delete product', error);
-      toast.error('Gagal menghapus produk');
+      logger.error("Failed to delete product", error);
+      toast.error("Gagal menghapus produk");
     }
   };
 
-  const toggleProductStatus = async (productId: string, currentStatus: boolean) => {
+  const toggleProductStatus = async (
+    productId: string,
+    currentStatus: boolean
+  ) => {
     try {
       const { error } = await supabase
-        .from('products')
+        .from("products")
         .update({ is_active: !currentStatus })
-        .eq('id', productId);
+        .eq("id", productId);
 
       if (error) throw error;
-      toast.success(`Produk ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
+      toast.success(
+        `Produk ${!currentStatus ? "diaktifkan" : "dinonaktifkan"}`
+      );
       loadProducts();
     } catch (error) {
-      logger.error('Failed to update product status', error);
-      toast.error('Gagal mengubah status produk');
+      logger.error("Failed to update product status", error);
+      toast.error("Gagal mengubah status produk");
     }
+  };
+
+  const calculateTotalStock = () => {
+    return Object.values(sizeStocks).reduce((total, stock) => total + stock, 0);
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
     }).format(price);
   };
@@ -388,13 +448,15 @@ const ProductManagement = () => {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {editingProduct ? 'Edit Produk' : 'Tambah Produk Baru'}
+                  {editingProduct ? "Edit Produk" : "Tambah Produk Baru"}
                 </DialogTitle>
                 <DialogDescription>
-                  {editingProduct ? 'Perbarui informasi produk' : 'Masukkan informasi produk baru'}
+                  {editingProduct
+                    ? "Perbarui informasi produk"
+                    : "Masukkan informasi produk baru"}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -402,23 +464,29 @@ const ProductManagement = () => {
                     <Input
                       id="name"
                       value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
                       placeholder="Nama produk"
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="category">Kategori *</Label>
-                    <Select 
-                      value={formData.category} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                    >
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, category: value }))
+                      }>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih kategori" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map(category => (
+                        {categories.map((category) => (
                           <SelectItem key={category} value={category}>
                             {category}
                           </SelectItem>
@@ -433,7 +501,12 @@ const ProductManagement = () => {
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     placeholder="Deskripsi produk"
                     rows={3}
                   />
@@ -445,7 +518,12 @@ const ProductManagement = () => {
                     id="price"
                     type="number"
                     value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        price: e.target.value,
+                      }))
+                    }
                     placeholder="Harga"
                     required
                   />
@@ -455,10 +533,11 @@ const ProductManagement = () => {
                   <Label>Stok per Ukuran</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                     {formData.ukuran.map((size) => {
-                      console.log('Rendering size input for:', size, 'Stock:', sizeStocks[size]);
                       return (
                         <div key={size} className="space-y-2">
-                          <Label htmlFor={`stock-${size}`} className="text-sm font-medium">
+                          <Label
+                            htmlFor={`stock-${size}`}
+                            className="text-sm font-medium">
                             {size}
                           </Label>
                           <Input
@@ -467,10 +546,9 @@ const ProductManagement = () => {
                             min="0"
                             value={sizeStocks[size] || 0}
                             onChange={(e) => {
-                              console.log('Changing stock for size:', size, 'to:', e.target.value);
-                              setSizeStocks(prev => ({
+                              setSizeStocks((prev) => ({
                                 ...prev,
-                                [size]: parseInt(e.target.value) || 0
+                                [size]: parseInt(e.target.value) || 0,
                               }));
                             }}
                             placeholder="0"
@@ -481,10 +559,7 @@ const ProductManagement = () => {
                     })}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Total stok: {Object.values(sizeStocks).reduce((total, stock) => total + stock, 0)}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Debug - sizeStocks: {JSON.stringify(sizeStocks)}
+                    Total stok: {calculateTotalStock()}
                   </div>
                 </div>
 
@@ -506,28 +581,37 @@ const ProductManagement = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>atau</span>
                     <div className="h-px bg-border flex-1" />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="image_url">URL Gambar</Label>
                     <Input
                       id="image_url"
                       value={formData.image_url}
-                      onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          image_url: e.target.value,
+                        }))
+                      }
                       placeholder="https://example.com/image.jpg"
                     />
                   </div>
-                  
+
                   {(selectedFile || formData.image_url) && (
                     <div className="space-y-2">
                       <Label>Preview</Label>
                       <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted">
                         <img
-                          src={selectedFile ? URL.createObjectURL(selectedFile) : formData.image_url}
+                          src={
+                            selectedFile
+                              ? URL.createObjectURL(selectedFile)
+                              : formData.image_url
+                          }
                           alt="Preview"
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -544,13 +628,18 @@ const ProductManagement = () => {
                   <Switch
                     id="is_active"
                     checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, is_active: checked }))
+                    }
                   />
                   <Label htmlFor="is_active">Produk Aktif</Label>
                 </div>
 
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}>
                     Batal
                   </Button>
                   <Button type="submit" disabled={uploading}>
@@ -560,9 +649,7 @@ const ProductManagement = () => {
                         Mengunggah...
                       </>
                     ) : (
-                      <>
-                        {editingProduct ? 'Perbarui' : 'Tambah'} Produk
-                      </>
+                      <>{editingProduct ? "Perbarui" : "Tambah"} Produk</>
                     )}
                   </Button>
                 </DialogFooter>
@@ -586,13 +673,15 @@ const ProductManagement = () => {
                   />
                 </div>
               </div>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <Select
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Semua Kategori" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Kategori</SelectItem>
-                  {categories.map(category => (
+                  {categories.map((category) => (
                     <SelectItem key={category} value={category.toLowerCase()}>
                       {category}
                     </SelectItem>
@@ -620,10 +709,9 @@ const ProductManagement = () => {
               <div className="text-center py-8">
                 <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  {searchQuery || selectedCategory !== "all" 
+                  {searchQuery || selectedCategory !== "all"
                     ? "Tidak ada produk yang sesuai dengan filter"
-                    : "Belum ada produk yang ditambahkan"
-                  }
+                    : "Belum ada produk yang ditambahkan"}
                 </p>
               </div>
             ) : (
@@ -667,8 +755,8 @@ const ProductManagement = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span>{product.stock_quantity || 0}</span>
-                            {(product.stock_quantity || 0) < 10 && (
+                            <span>{product.total_stock || 0}</span>
+                            {(product.total_stock || 0) < 10 && (
                               <AlertCircle className="h-4 w-4 text-orange-500" />
                             )}
                           </div>
@@ -677,10 +765,15 @@ const ProductManagement = () => {
                           <div className="flex items-center gap-2">
                             <Switch
                               checked={product.is_active}
-                              onCheckedChange={() => toggleProductStatus(product.id, product.is_active)}
+                              onCheckedChange={() =>
+                                toggleProductStatus(
+                                  product.id,
+                                  product.is_active
+                                )
+                              }
                             />
                             <span className="text-sm">
-                              {product.is_active ? 'Aktif' : 'Nonaktif'}
+                              {product.is_active ? "Aktif" : "Nonaktif"}
                             </span>
                           </div>
                         </TableCell>
@@ -689,16 +782,16 @@ const ProductManagement = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => openEditDialog(product)}
-                            >
+                              onClick={() => openEditDialog(product)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDelete(product.id, product.name)}
-                              className="text-destructive hover:text-destructive"
-                            >
+                              onClick={() =>
+                                handleDelete(product.id, product.name)
+                              }
+                              className="text-destructive hover:text-destructive">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>

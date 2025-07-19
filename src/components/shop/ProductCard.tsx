@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -37,11 +38,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
 
-  useEffect(() => {
-    fetchProductSizes();
-  }, [product.id]);
-
-  const fetchProductSizes = async () => {
+  const fetchProductSizes = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("product_sizes")
@@ -53,10 +50,28 @@ export function ProductCard({ product }: ProductCardProps) {
     } catch (error) {
       console.error("Error fetching product sizes:", error);
     }
-  };
+  }, [product.id]);
+
+  useEffect(() => {
+    fetchProductSizes();
+  }, [fetchProductSizes]);
 
   const getTotalStock = () => {
     return productSizes.reduce((total, size) => total + size.stok, 0);
+  };
+
+  const getSelectedSizeStock = () => {
+    if (!selectedSize) return 0;
+    const sizeData = productSizes.find(size => size.ukuran === selectedSize);
+    return sizeData?.stok || 0;
+  };
+
+  const isOutOfStock = () => {
+    return getTotalStock() === 0;
+  };
+
+  const isSelectedSizeOutOfStock = () => {
+    return selectedSize && getSelectedSizeStock() === 0;
   };
 
   const formatCurrency = (amount: number) => {
@@ -136,6 +151,16 @@ export function ProductCard({ product }: ProductCardProps) {
             {formatCurrency(product.price)}
           </p>
         </div>
+
+        {/* Add to Cart Button - Navigate to product detail */}
+        <Button
+          onClick={() => window.location.href = `/product/${product.id}`}
+          disabled={isOutOfStock()}
+          className="w-full"
+        >
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          {isOutOfStock() ? "Stok Habis" : "Lihat Detail"}
+        </Button>
 
       </CardContent>
     </Card>

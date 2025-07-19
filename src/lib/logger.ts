@@ -4,14 +4,14 @@ type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 interface LogEntry {
   level: LogLevel;
   message: string;
-  data?: any;
+  data?: unknown;
   timestamp: string;
 }
 
 class Logger {
   private isDevelopment = import.meta.env.DEV;
 
-  private log(level: LogLevel, message: string, data?: any) {
+  private log(level: LogLevel, message: string, data?: unknown) {
     const entry: LogEntry = {
       level,
       message,
@@ -44,19 +44,19 @@ class Logger {
     }
   }
 
-  error(message: string, data?: any) {
+  error(message: string, data?: unknown) {
     this.log('error', message, data);
   }
 
-  warn(message: string, data?: any) {
+  warn(message: string, data?: unknown) {
     this.log('warn', message, data);
   }
 
-  info(message: string, data?: any) {
+  info(message: string, data?: unknown) {
     this.log('info', message, data);
   }
 
-  debug(message: string, data?: any) {
+  debug(message: string, data?: unknown) {
     this.log('debug', message, data);
   }
 }
