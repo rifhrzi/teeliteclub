@@ -6,45 +6,45 @@ services:
   - type: web
     name: clothly-commerce-hub
     runtime: node
-    plan: starter  # Recommended for e-commerce
+    plan: starter # Recommended for e-commerce
     buildCommand: npm ci && npm run build
     startCommand: npm start
-    region: oregon  # Choose your preferred region
+    region: oregon # Choose your preferred region
     envVars:
       # Supabase Configuration
       - key: VITE_SUPABASE_URL
         value: https://ngucthauvvjajdjcdrvl.supabase.co
       - key: VITE_SUPABASE_ANON_KEY
         sync: false # Set this manually in Render dashboard for security
-      
+
       # Midtrans Configuration
       - key: VITE_MIDTRANS_CLIENT_KEY
         sync: false # Set this manually in Render dashboard for security
-      
+
       # App Configuration
       - key: VITE_APP_ENV
         value: production
       - key: VITE_APP_URL
         value: https://clothly-commerce-hub.onrender.com
-      
-      # Security Configuration  
+
+      # Security Configuration
       - key: VITE_ALLOWED_ORIGINS
         value: https://clothly-commerce-hub.onrender.com
-      
+
       # Server Configuration
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
-      
+
       # CORS Configuration
       - key: ALLOWED_ORIGINS
         value: https://clothly-commerce-hub.onrender.com
-    
+
     # Deployment settings
     autoDeploy: true
     branch: main
-    
+
     # Build settings
     buildFilter:
       paths:
@@ -57,21 +57,20 @@ services:
         - tsconfig.json
         - tailwind.config.ts
         - index.html
-    
+
     # Health check
     healthCheckPath: /health
-    
+
     # Scaling configuration
     scaling:
       minInstances: 1
       maxInstances: 3
-    
+
     # Web service specific settings
     disk:
       name: clothly-data
       size: 1GB
       mountPath: /data
-
 # Additional services (if needed in the future)
 # - type: background
 #   name: background-jobs
