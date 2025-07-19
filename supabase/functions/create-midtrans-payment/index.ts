@@ -207,18 +207,32 @@ serve(async (req) => {
     };
 
     console.log('Creating order in database...');
-    const { data: order, error: orderError } = await supabaseService
-      .from('orders')
-      .insert([dbOrderData])
-      .select()
-      .single();
+    console.log('Order data to insert:', JSON.stringify(dbOrderData, null, 2));
+    
+    let order;
+    try {
+      const { data: orderData, error: orderError } = await supabaseService
+        .from('orders')
+        .insert([dbOrderData])
+        .select()
+        .single();
 
-    if (orderError) {
-      console.error('Database order error:', orderError);
-      throw orderError;
+      if (orderError) {
+        console.error('Database order error:', orderError);
+        console.error('Order error details:', JSON.stringify(orderError, null, 2));
+        throw new Error(`Database order creation failed: ${orderError.message || orderError.details || JSON.stringify(orderError)}`);
+      }
+
+      if (!orderData) {
+        throw new Error('Order creation returned no data');
+      }
+
+      order = orderData;
+      console.log('Order created with ID:', order.id);
+    } catch (dbError) {
+      console.error('Error during order creation:', dbError);
+      throw new Error(`Failed to create order: ${dbError.message || dbError}`);
     }
-
-    console.log('Order created with ID:', order.id);
 
     // Create order items with correct product information
     const orderItems = items.map((item: CartItem) => ({
@@ -434,18 +448,28 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error creating Midtrans payment:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error constructor:', error?.constructor?.name);
+    
+    // Log the full error object for debugging
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     
     // Return detailed error information for debugging
     const errorResponse = {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
+      errorType: error?.constructor?.name || typeof error,
       // Add environment check for debugging
       debug: {
         hasServerKey: !!Deno.env.get('MIDTRANS_SERVER_KEY'),
         environment: Deno.env.get('MIDTRANS_ENVIRONMENT'),
         hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
-        hasSupabaseServiceKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+        hasSupabaseServiceKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+        serverKeyLength: Deno.env.get('MIDTRANS_SERVER_KEY')?.length || 0
       }
     };
     

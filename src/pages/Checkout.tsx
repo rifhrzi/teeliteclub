@@ -117,6 +117,12 @@ const Checkout = () => {
       
       if (paymentError) {
         console.error('Payment error details:', paymentError);
+        
+        // Try to get the actual error response from the Edge Function
+        if (paymentError && typeof paymentError === 'object' && 'context' in paymentError) {
+          console.error('Error context:', paymentError.context);
+        }
+        
         throw paymentError;
       }
 
@@ -131,18 +137,36 @@ const Checkout = () => {
       }
     } catch (error) {
       console.error('Error creating payment:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
       
       // Try to get detailed error information
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
+      if (error && typeof error === 'object') {
+        // Log all properties of the error object
+        console.error('Error properties:', Object.keys(error));
+        console.error('Full error object:', JSON.stringify(error, null, 2));
         
-        // If it's a FunctionsHttpError, try to get the response body
-        try {
-          const errorData = JSON.parse(error.message);
-          console.error('Detailed error:', errorData);
-          toast.error(`Payment error: ${errorData.error || 'Unknown error'}`);
-        } catch {
+        // Check if it's a FunctionsHttpError with context
+        if ('context' in error && error.context) {
+          console.error('Error context:', error.context);
+          if (error.context.body) {
+            console.error('Error response body:', error.context.body);
+            try {
+              const errorData = JSON.parse(error.context.body);
+              toast.error(`Payment error: ${errorData.error || errorData.message || 'Unknown error'}`);
+              return;
+            } catch (parseError) {
+              console.error('Failed to parse error response:', parseError);
+            }
+          }
+        }
+        
+        // Check if error has a message property
+        if (error.message) {
+          console.error('Error message:', error.message);
           toast.error(`Gagal membuat pembayaran: ${error.message}`);
+        } else {
+          toast.error('Gagal membuat pembayaran - Unknown error');
         }
       } else {
         toast.error('Gagal membuat pembayaran');
