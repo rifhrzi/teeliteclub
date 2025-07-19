@@ -90,7 +90,7 @@ const Checkout = () => {
       }
 
       const orderData = {
-        total: getCartTotal(),
+        total: getCartTotal() + (formData.shipping_method === 'express' ? 20000 : 0),
         nama_pembeli: formData.nama_pembeli,
         email_pembeli: formData.email_pembeli,
         telepon_pembeli: formData.telepon_pembeli,
@@ -101,6 +101,8 @@ const Checkout = () => {
       };
 
       // Create Midtrans payment
+      console.log('Calling Midtrans payment function...');
+      
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
         'create-midtrans-payment',
         {
@@ -111,7 +113,12 @@ const Checkout = () => {
         }
       );
 
-      if (paymentError) throw paymentError;
+      console.log('Payment response:', { paymentData, paymentError });
+      
+      if (paymentError) {
+        console.error('Payment error details:', paymentError);
+        throw paymentError;
+      }
 
       // Clear cart after successful payment creation
       await clearCart();

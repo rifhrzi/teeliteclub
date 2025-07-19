@@ -13,10 +13,11 @@ interface CartItem {
 
 interface OrderData {
   total: number;
-  nama_lengkap: string;
-  telepon: string;
-  alamat: string;
-  metode_pembayaran: string;
+  nama_pembeli: string;
+  email_pembeli: string;
+  telepon_pembeli: string;
+  shipping_address: string;
+  payment_method: string;
   shipping_method?: string;
 }
 
@@ -40,7 +41,8 @@ serve(async (req) => {
       supabaseAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY'),
       midtransServerKey: !!Deno.env.get('MIDTRANS_SERVER_KEY'),
       midtransEnv: Deno.env.get('MIDTRANS_ENVIRONMENT'),
-      allowedOrigin: Deno.env.get('ALLOWED_ORIGIN')
+      allowedOrigin: Deno.env.get('ALLOWED_ORIGIN'),
+      serverKeyPrefix: Deno.env.get('MIDTRANS_SERVER_KEY')?.substring(0, 15) + '...'
     });
     
     const supabaseClient = createClient(
@@ -137,8 +139,8 @@ serve(async (req) => {
       calculatedTotal += actualPrice * item.quantity;
     }
 
-    // Add shipping cost - check shipping_method if available, fallback to metode_pembayaran 
-    const shippingCost = (orderData.shipping_method === 'express' || orderData.metode_pembayaran === 'express') ? 20000 : 0;
+    // Add shipping cost
+    const shippingCost = orderData.shipping_method === 'express' ? 20000 : 0;
     calculatedTotal += shippingCost;
 
     // Validate submitted total against calculated total
@@ -161,30 +163,47 @@ serve(async (req) => {
     }
 
     // Validate server key format based on environment
-    if (isProduction && !serverKey.startsWith('SB-Mid-server-')) {
-      throw new Error('Production environment requires a production server key starting with "SB-Mid-server-"');
+    if (isProduction && serverKey.startsWith('SB-Mid-server-')) {
+      console.error('Production environment detected but using sandbox server key');
+      throw new Error('Production environment requires a production server key (not starting with "SB-Mid-server-")');
     }
     
     if (!isProduction && !serverKey.startsWith('SB-Mid-server-')) {
+      console.error('Sandbox environment detected but using production server key');
       throw new Error('Sandbox environment requires a sandbox server key starting with "SB-Mid-server-"');
     }
+    
+    console.log('Server key validation passed');
     
     const snapUrl = isProduction 
       ? 'https://app.midtrans.com/snap/v1/transactions'
       : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+      
+    console.log('Using Midtrans URL:', snapUrl);
 
     // Create order in database
 
-    // Generate order number
+    // Generate order number directly
     console.log('Generating order number...');
-    const { data: orderNumberData } = await supabaseService.rpc('generate_order_number');
+    const now = new Date();
+    const dateStr = now.getFullYear().toString() + 
+                   (now.getMonth() + 1).toString().padStart(2, '0') + 
+                   now.getDate().toString().padStart(2, '0');
+    const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const orderNumberData = `TEE-${dateStr}-${randomNum}`;
     console.log('Order number generated:', orderNumberData);
     
     const dbOrderData = {
-      ...orderData,
       user_id: user.id,
       order_number: orderNumberData,
-      status: 'pending'
+      total: orderData.total,
+      status: 'pending',
+      shipping_method: orderData.shipping_method,
+      payment_method: orderData.payment_method,
+      shipping_address: orderData.shipping_address,
+      nama_pembeli: orderData.nama_pembeli,
+      telepon_pembeli: orderData.telepon_pembeli,
+      email_pembeli: orderData.email_pembeli
     };
 
     console.log('Creating order in database...');
@@ -292,7 +311,7 @@ serve(async (req) => {
     // Prepare Midtrans transaction data
     const itemDetails = items.map((item: CartItem) => ({
       id: item.product_id,
-      price: productPriceMap.get(item.product_id) || 0,
+      price: Math.round(productPriceMap.get(item.product_id) || 0), // Ensure integer price
       quantity: item.quantity,
       name: `${productNameMap.get(item.product_id) || 'Unknown Product'} (${item.ukuran})`
     }));
@@ -301,13 +320,29 @@ serve(async (req) => {
     if (orderData.shipping_method === 'express') {
       itemDetails.push({
         id: 'shipping',
-        price: 20000,
+        price: 20000, // Already integer
         quantity: 1,
         name: 'Ongkos Kirim Express'
       });
     }
 
-    const grossAmount = orderData.total + (orderData.shipping_method === 'express' ? 20000 : 0);
+    const grossAmount = Math.round(orderData.total); // Midtrans requires integer amounts
+
+    // Validate required fields for production
+    if (isProduction) {
+      if (!orderData.nama_pembeli || orderData.nama_pembeli.trim().length < 2) {
+        throw new Error('Customer name is required and must be at least 2 characters for production');
+      }
+      if (!orderData.email_pembeli || !orderData.email_pembeli.includes('@')) {
+        throw new Error('Valid customer email is required for production');
+      }
+      if (!orderData.telepon_pembeli || orderData.telepon_pembeli.length < 8) {
+        throw new Error('Valid customer phone number is required for production');
+      }
+      if (!orderData.shipping_address || orderData.shipping_address.trim().length < 10) {
+        throw new Error('Detailed shipping address is required for production');
+      }
+    }
 
     const transactionData = {
       transaction_details: {
@@ -316,16 +351,28 @@ serve(async (req) => {
       },
       item_details: itemDetails,
       customer_details: {
-        first_name: orderData.nama_pembeli,
-        email: orderData.email_pembeli,
-        phone: orderData.telepon_pembeli,
+        first_name: orderData.nama_pembeli.trim(),
+        email: orderData.email_pembeli.trim(),
+        phone: orderData.telepon_pembeli.replace(/\D/g, ''), // Remove non-numeric characters
         shipping_address: {
-          address: orderData.shipping_address,
+          first_name: orderData.nama_pembeli.trim(),
+          address: orderData.shipping_address.trim(),
+          city: "Jakarta", // Default city for production
+          postal_code: "12345", // Default postal code for production
+          country_code: "IDN"
         }
       },
       credit_card: {
         secure: true
-      }
+      },
+      // Add additional fields for production compliance
+      ...(isProduction && {
+        enabled_payments: ["credit_card", "bank_transfer", "echannel", "gopay", "shopeepay"],
+        custom_expiry: {
+          expiry_duration: 60,
+          unit: "minute"
+        }
+      })
     };
 
     console.log('Midtrans transaction data:', JSON.stringify(transactionData, null, 2));
@@ -347,7 +394,20 @@ serve(async (req) => {
     if (!midtransResponse.ok) {
       const errorText = await midtransResponse.text();
       console.error('Midtrans API error response:', errorText);
-      throw new Error(`Midtrans API error: ${midtransResponse.status} - ${errorText}`);
+      console.error('Environment:', environment);
+      console.error('Server key prefix:', serverKey ? serverKey.substring(0, 15) + '...' : 'none');
+      
+      // Parse error response for better debugging
+      let errorDetails = errorText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetails = errorJson.error_messages || errorJson.message || errorText;
+        console.error('Parsed error details:', errorDetails);
+      } catch (e) {
+        console.error('Could not parse error response as JSON');
+      }
+      
+      throw new Error(`Midtrans API error (${environment}): ${midtransResponse.status} - ${errorDetails}`);
     }
 
     const midtransData = await midtransResponse.json();
