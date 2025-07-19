@@ -57,6 +57,16 @@ const Checkout = () => {
 
     setLoading(true);
     try {
+      // Check authentication before proceeding
+      const { data: session } = await supabase.auth.getSession();
+      console.log('User session:', session.session?.user?.email || 'NOT LOGGED IN');
+      
+      if (!session.session?.user) {
+        toast.error('Silakan login terlebih dahulu');
+        navigate('/auth');
+        return;
+      }
+      
       // CRITICAL: Validate stock for all items before proceeding
       console.log('Validating stock for checkout...');
       for (const item of items) {

@@ -55,8 +55,6 @@ serve(async (req) => {
     }
     
     const token = authHeader.replace('Bearer ', '');
-    console.log('Token received:', token ? 'exists' : 'missing');
-    
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError) {
       console.error('Auth error:', authError);
@@ -65,10 +63,10 @@ serve(async (req) => {
     
     const user = data.user;
     if (!user?.email) {
-      throw new Error('User not authenticated - no user data');
+      throw new Error('User not authenticated');
     }
 
-    console.log('User authenticated:', user.email);
+    console.log('Final user object:', user?.email || 'no email');
 
     let requestBody;
     try {
