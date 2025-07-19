@@ -1,13 +1,15 @@
 # Render.com deployment configuration for Clothly Commerce Hub
-# E-commerce React application with Supabase backend
+# E-commerce React application with Express.js backend and Supabase
 
 services:
-  # Static Site for React Frontend
+  # Web Service for E-commerce Application
   - type: web
     name: clothly-commerce-hub
-    runtime: static
+    runtime: node
+    plan: starter  # Recommended for e-commerce
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    startCommand: npm start
+    region: oregon  # Choose your preferred region
     envVars:
       # Supabase Configuration
       - key: VITE_SUPABASE_URL
@@ -25,48 +27,19 @@ services:
       - key: VITE_APP_URL
         value: https://clothly-commerce-hub.onrender.com
       
-      # Security Configuration
+      # Security Configuration  
       - key: VITE_ALLOWED_ORIGINS
         value: https://clothly-commerce-hub.onrender.com
-    
-    # Custom headers for security and performance
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-XSS-Protection
-        value: 1; mode=block
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.sandbox.midtrans.com https://app.midtrans.com https://api.midtrans.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https://*.supabase.co https://api.midtrans.com https://app.sandbox.midtrans.com https://app.midtrans.com; frame-src https://app.sandbox.midtrans.com https://app.midtrans.com;"
       
-      # Cache control for static assets
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-      - path: /*.js
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-      - path: /*.css
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-      - path: /favicon.*
-        name: Cache-Control
-        value: public, max-age=31536000
-    
-    # Routes configuration for SPA
-    routes:
-      # Serve index.html for all non-asset routes (SPA routing)
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      # Server Configuration
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      
+      # CORS Configuration
+      - key: ALLOWED_ORIGINS
+        value: https://clothly-commerce-hub.onrender.com
     
     # Deployment settings
     autoDeploy: true
@@ -77,6 +50,7 @@ services:
       paths:
         - src/**
         - public/**
+        - server.js
         - package.json
         - package-lock.json
         - vite.config.ts
@@ -85,7 +59,18 @@ services:
         - index.html
     
     # Health check
-    healthCheckPath: /
+    healthCheckPath: /health
+    
+    # Scaling configuration
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+    
+    # Web service specific settings
+    disk:
+      name: clothly-data
+      size: 1GB
+      mountPath: /data
 
 # Additional services (if needed in the future)
 # - type: background
