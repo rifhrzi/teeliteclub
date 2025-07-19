@@ -374,9 +374,22 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error creating Midtrans payment:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }), {
+    
+    // Return detailed error information for debugging
+    const errorResponse = {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      // Add environment check for debugging
+      debug: {
+        hasServerKey: !!Deno.env.get('MIDTRANS_SERVER_KEY'),
+        environment: Deno.env.get('MIDTRANS_ENVIRONMENT'),
+        hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+        hasSupabaseServiceKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+      }
+    };
+    
+    return new Response(JSON.stringify(errorResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

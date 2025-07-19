@@ -124,7 +124,22 @@ const Checkout = () => {
       }
     } catch (error) {
       console.error('Error creating payment:', error);
-      toast.error('Gagal membuat pembayaran');
+      
+      // Try to get detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        
+        // If it's a FunctionsHttpError, try to get the response body
+        try {
+          const errorData = JSON.parse(error.message);
+          console.error('Detailed error:', errorData);
+          toast.error(`Payment error: ${errorData.error || 'Unknown error'}`);
+        } catch {
+          toast.error(`Gagal membuat pembayaran: ${error.message}`);
+        }
+      } else {
+        toast.error('Gagal membuat pembayaran');
+      }
     } finally {
       setLoading(false);
     }
