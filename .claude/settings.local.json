@@ -25,7 +25,8 @@
       "Bash(git config:*)",
       "Bash(git push:*)",
       "Bash(npm start)",
-      "Bash(supabase functions logs:*)"
+      "Bash(supabase functions logs:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

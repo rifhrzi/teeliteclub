@@ -230,6 +230,7 @@ export type Database = {
           name: string
           price: number
           search_vector: unknown | null
+          size_chart: Json | null
           stock_quantity: number | null
           ukuran: string[] | null
           updated_at: string | null
@@ -245,6 +246,7 @@ export type Database = {
           name: string
           price: number
           search_vector?: unknown | null
+          size_chart?: Json | null
           stock_quantity?: number | null
           ukuran?: string[] | null
           updated_at?: string | null
@@ -260,6 +262,7 @@ export type Database = {
           name?: string
           price?: number
           search_vector?: unknown | null
+          size_chart?: Json | null
           stock_quantity?: number | null
           ukuran?: string[] | null
           updated_at?: string | null

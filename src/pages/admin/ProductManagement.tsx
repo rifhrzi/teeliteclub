@@ -43,6 +43,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SizeChartEditor, type SizeChartData } from "@/components/admin/SizeChartEditor";
 
 interface Product {
   id: string;
@@ -56,6 +57,7 @@ interface Product {
   total_stock?: number; // Calculated total stock from product_sizes
   is_active: boolean;
   ukuran?: string[];
+  size_chart?: SizeChartData | null;
   created_at: string;
 }
 
@@ -87,6 +89,7 @@ const ProductManagement = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [sizeChart, setSizeChart] = useState<SizeChartData | null>(null);
 
   const categories = ["Men", "Women", "Accessories"];
 
@@ -183,6 +186,7 @@ const ProductManagement = () => {
     setEditingProduct(null);
     setSelectedFiles([]);
     setExistingImages([]);
+    setSizeChart(null);
     setUploading(false);
   };
 
@@ -206,6 +210,9 @@ const ProductManagement = () => {
       images.push(...product.gambar.filter(img => img !== product.image_url));
     }
     setExistingImages(images);
+    
+    // Load existing size chart
+    setSizeChart(product.size_chart || null);
 
     // Load existing size stocks
     try {
@@ -342,6 +349,7 @@ const ProductManagement = () => {
         category: formData.category,
         image_url: primaryImageUrl || null,
         gambar: allImages.length > 0 ? allImages : null,
+        size_chart: sizeChart,
         stock_quantity: totalStock, // Use calculated total stock from sizes
         is_active: formData.is_active,
         ukuran: formData.ukuran,
@@ -721,6 +729,13 @@ const ProductManagement = () => {
                   />
                   <Label htmlFor="is_active">Produk Aktif</Label>
                 </div>
+
+                {/* Size Chart Editor */}
+                <SizeChartEditor
+                  value={sizeChart}
+                  onChange={setSizeChart}
+                  availableSizes={formData.ukuran}
+                />
 
                 <DialogFooter>
                   <Button

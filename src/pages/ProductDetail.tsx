@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 import { ProductHeader } from "@/components/layout/ProductHeader";
+import { SizeChart } from "@/components/shop/SizeChart";
+import type { SizeChartData } from "@/components/admin/SizeChartEditor";
 
 interface Product {
   id: string;
@@ -35,6 +37,7 @@ interface Product {
   category: string;
   stock_quantity: number;
   ukuran: string[];
+  size_chart?: SizeChartData | null;
 }
 
 interface ProductSize {
@@ -403,6 +406,14 @@ const ProductDetail = () => {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Size Chart */}
+            {product.size_chart && product.size_chart.measurements && product.size_chart.measurements.length > 0 && (
+              <SizeChart
+                sizeChart={product.size_chart}
+                availableSizes={product.ukuran || []}
+              />
             )}
 
             {/* Size Selection */}
