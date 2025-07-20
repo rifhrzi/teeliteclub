@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [productSizes, setProductSizes] = useState<ProductSize[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const fetchProductSizes = useCallback(async () => {
     try {
@@ -81,14 +82,35 @@ export function ProductCard({ product }: ProductCardProps) {
     }).format(amount);
   };
 
-  const getProductImage = () => {
+  const getProductImages = () => {
+    const images = [];
     if (product.gambar && product.gambar.length > 0) {
-      return product.gambar[0];
+      images.push(...product.gambar);
+    } else if (product.image_url) {
+      images.push(product.image_url);
     }
-    if (product.image_url) {
-      return product.image_url;
+    
+    if (images.length === 0) {
+      images.push("https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop");
     }
-    return "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop";
+    
+    return images;
+  };
+  
+  const productImages = getProductImages();
+  
+  const nextImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setCurrentImageIndex((prev) => 
+      prev === productImages.length - 1 ? 0 : prev + 1
+    );
+  };
+  
+  const prevImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setCurrentImageIndex((prev) => 
+      prev === 0 ? productImages.length - 1 : prev - 1
+    );
   };
 
   const handleAddToCart = async () => {
@@ -118,14 +140,52 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg border-0 bg-card">
-      <div className="aspect-square overflow-hidden bg-muted">
+      <div className="aspect-square overflow-hidden bg-muted relative">
         <Link to={`/product/${product.id}`}>
           <img
-            src={getProductImage()}
+            src={productImages[currentImageIndex]}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
+        
+        {/* Image Navigation - Only show if multiple images */}
+        {productImages.length > 1 && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={prevImage}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={nextImage}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {/* Image Indicators */}
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {productImages.map((_, index) => (
+                <button
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCurrentImageIndex(index);
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
       <CardContent className="p-4 space-y-3">
         <div className="space-y-2">
@@ -144,7 +204,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </Link>
           {product.description && (
             <p className="text-sm text-muted-foreground line-clamp-2">
-              {product.description}
+              {product.description.replace(/•/g, '•').replace(/^-\s/gm, '• ')}
             </p>
           )}
           <p className="font-bold text-xl text-primary">

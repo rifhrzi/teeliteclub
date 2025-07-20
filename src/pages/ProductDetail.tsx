@@ -19,6 +19,8 @@ import {
   ShoppingCart,
   Package,
   CreditCard,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 import { ProductHeader } from "@/components/layout/ProductHeader";
@@ -52,6 +54,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const fetchProduct = useCallback(async () => {
     try {
@@ -181,14 +184,57 @@ const ProductDetail = () => {
     }
   };
 
-  const getProductImage = () => {
-    if (product?.gambar && product.gambar.length > 0) {
-      return product.gambar[0];
+  const getProductImages = () => {
+    if (!product) return [];
+    
+    const images = [];
+    if (product.gambar && product.gambar.length > 0) {
+      images.push(...product.gambar);
+    } else if (product.image_url) {
+      images.push(product.image_url);
     }
-    if (product?.image_url) {
-      return product.image_url;
+    
+    if (images.length === 0) {
+      images.push("https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop");
     }
-    return "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop";
+    
+    return images;
+  };
+  
+  const productImages = getProductImages();
+  
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => 
+      prev === productImages.length - 1 ? 0 : prev + 1
+    );
+  };
+  
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => 
+      prev === 0 ? productImages.length - 1 : prev - 1
+    );
+  };
+  
+  const formatDescription = (description: string) => {
+    if (!description) return null;
+    
+    return description.split('\n').map((line, index) => {
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+        return (
+          <li key={index} className="ml-4 list-disc list-inside">
+            {trimmedLine.substring(1).trim()}
+          </li>
+        );
+      }
+      return trimmedLine ? (
+        <p key={index} className="mb-2">
+          {trimmedLine}
+        </p>
+      ) : (
+        <br key={index} />
+      );
+    });
   };
 
   if (loading) {
@@ -265,15 +311,71 @@ const ProductDetail = () => {
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Image */}
+          {/* Product Images */}
           <div className="space-y-4">
-            <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+            <div className="aspect-square rounded-lg overflow-hidden bg-muted relative group">
               <img
-                src={getProductImage()}
+                src={productImages[currentImageIndex]}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
+              
+              {/* Image Navigation - Only show if multiple images */}
+              {productImages.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                  
+                  {/* Image Indicators */}
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {productImages.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-3 h-3 rounded-full transition-colors ${
+                          index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                        }`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+            
+            {/* Thumbnail Images */}
+            {productImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {productImages.map((image, index) => (
+                  <button
+                    key={index}
+                    className={`aspect-square rounded-lg overflow-hidden bg-muted border-2 transition-colors ${
+                      index === currentImageIndex ? 'border-primary' : 'border-transparent'
+                    }`}
+                    onClick={() => setCurrentImageIndex(index)}
+                  >
+                    <img
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -295,7 +397,11 @@ const ProductDetail = () => {
             {product.description && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Description</h3>
-                <p className="text-muted-foreground">{product.description}</p>
+                <div className="text-muted-foreground">
+                  <div className="space-y-2">
+                    {formatDescription(product.description)}
+                  </div>
+                </div>
               </div>
             )}
 

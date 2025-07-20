@@ -84,8 +84,9 @@ const ProductManagement = () => {
     XL: 0,
     XXL: 0,
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
 
   const categories = ["Men", "Women", "Accessories"];
 
@@ -180,7 +181,8 @@ const ProductManagement = () => {
       XXL: 0,
     });
     setEditingProduct(null);
-    setSelectedFile(null);
+    setSelectedFiles([]);
+    setExistingImages([]);
     setUploading(false);
   };
 
@@ -196,6 +198,14 @@ const ProductManagement = () => {
       is_active: product.is_active,
       ukuran: product.ukuran || ["S", "M", "L", "XL", "XXL"],
     });
+    
+    // Load existing images
+    const images = [];
+    if (product.image_url) images.push(product.image_url);
+    if (product.gambar && product.gambar.length > 0) {
+      images.push(...product.gambar.filter(img => img !== product.image_url));
+    }
+    setExistingImages(images);
 
     // Load existing size stocks
     try {
@@ -263,19 +273,35 @@ const ProductManagement = () => {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    
+    // Validate files
+    for (const file of files) {
       if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
-        toast.error("Ukuran file maksimal 5MB");
+        toast.error(`File ${file.name} terlalu besar. Maksimal 5MB`);
         return;
       }
       if (!file.type.startsWith("image/")) {
-        toast.error("File harus berupa gambar");
+        toast.error(`${file.name} bukan file gambar`);
         return;
       }
-      setSelectedFile(file);
     }
+    
+    // Check total images limit (existing + new)
+    if (existingImages.length + selectedFiles.length + files.length > 5) {
+      toast.error("Maksimal 5 gambar per produk");
+      return;
+    }
+    
+    setSelectedFiles(prev => [...prev, ...files]);
+  };
+  
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const removeExistingImage = (index: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -287,14 +313,25 @@ const ProductManagement = () => {
     }
 
     try {
-      let imageUrl = formData.image_url;
+      let allImages = [...existingImages];
+      let primaryImageUrl = formData.image_url;
 
-      // Upload new image if selected
-      if (selectedFile) {
-        const uploadedUrl = await uploadImage(selectedFile);
-        if (uploadedUrl) {
-          imageUrl = uploadedUrl;
+      // Upload new images if selected
+      if (selectedFiles.length > 0) {
+        const uploadPromises = selectedFiles.map(file => uploadImage(file));
+        const uploadedUrls = await Promise.all(uploadPromises);
+        const validUrls = uploadedUrls.filter(url => url !== null) as string[];
+        allImages = [...allImages, ...validUrls];
+        
+        // Set first uploaded image as primary if no existing primary
+        if (!primaryImageUrl && validUrls.length > 0) {
+          primaryImageUrl = validUrls[0];
         }
+      }
+      
+      // If we have images in array but no primary, use first as primary
+      if (!primaryImageUrl && allImages.length > 0) {
+        primaryImageUrl = allImages[0];
       }
 
       const totalStock = calculateTotalStock();
@@ -303,7 +340,8 @@ const ProductManagement = () => {
         description: formData.description || null,
         price: parseFloat(formData.price),
         category: formData.category,
-        image_url: imageUrl || null,
+        image_url: primaryImageUrl || null,
+        gambar: allImages.length > 0 ? allImages : null,
         stock_quantity: totalStock, // Use calculated total stock from sizes
         is_active: formData.is_active,
         ukuran: formData.ukuran,
@@ -507,9 +545,17 @@ const ProductManagement = () => {
                         description: e.target.value,
                       }))
                     }
-                    placeholder="Deskripsi produk"
-                    rows={3}
+                    placeholder="Deskripsi produk (gunakan '•' untuk bullet points)"
+                    rows={5}
+                    className="resize-none"
                   />
+                  <div className="text-xs text-muted-foreground">
+                    💡 Tips: Gunakan '•' di awal baris untuk membuat bullet points
+                    <br />Contoh:
+                    <br />• Bahan berkualitas tinggi
+                    <br />• Nyaman digunakan
+                    <br />• Tahan lama
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -565,22 +611,84 @@ const ProductManagement = () => {
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="image_upload">Upload Gambar</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="image_upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                        className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                      />
-                      {selectedFile && (
-                        <span className="text-sm text-muted-foreground">
-                          {selectedFile.name}
-                        </span>
-                      )}
+                    <Label htmlFor="image_upload">Upload Gambar (Maksimal 5)</Label>
+                    <Input
+                      id="image_upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Total gambar: {existingImages.length + selectedFiles.length}/5
                     </div>
                   </div>
+
+                  {/* Existing Images */}
+                  {existingImages.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Gambar Saat Ini</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {existingImages.map((imageUrl, index) => (
+                          <div key={index} className="relative group">
+                            <div className="w-full h-24 rounded-lg overflow-hidden bg-muted">
+                              <img
+                                src={imageUrl}
+                                alt={`Existing ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = "/placeholder.svg";
+                                }}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeExistingImage(index)}
+                            >
+                              ×
+                            </Button>
+                            {index === 0 && (
+                              <Badge className="absolute bottom-1 left-1 text-xs">Utama</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* New Selected Files */}
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Gambar Baru</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {selectedFiles.map((file, index) => (
+                          <div key={index} className="relative group">
+                            <div className="w-full h-24 rounded-lg overflow-hidden bg-muted">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`New ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeSelectedFile(index)}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>atau</span>
@@ -588,7 +696,7 @@ const ProductManagement = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="image_url">URL Gambar</Label>
+                    <Label htmlFor="image_url">URL Gambar Utama</Label>
                     <Input
                       id="image_url"
                       value={formData.image_url}
@@ -601,27 +709,6 @@ const ProductManagement = () => {
                       placeholder="https://example.com/image.jpg"
                     />
                   </div>
-
-                  {(selectedFile || formData.image_url) && (
-                    <div className="space-y-2">
-                      <Label>Preview</Label>
-                      <div className="w-32 h-32 rounded-lg overflow-hidden bg-muted">
-                        <img
-                          src={
-                            selectedFile
-                              ? URL.createObjectURL(selectedFile)
-                              : formData.image_url
-                          }
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/placeholder.svg";
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -742,7 +829,7 @@ const ProductManagement = () => {
                             <div>
                               <p className="font-medium">{product.name}</p>
                               <p className="text-sm text-muted-foreground line-clamp-1">
-                                {product.description}
+                                {product.description?.replace(/•/g, '•').replace(/^-\s/gm, '• ')}
                               </p>
                             </div>
                           </div>
