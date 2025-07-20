@@ -408,6 +408,64 @@ const ProductDetail = () => {
               </div>
             )}
 
+            {/* Product Options Section */}
+            <div className="space-y-4 border-t border-border pt-6">
+              {/* Size Selection */}
+              {productSizes.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Size</h3>
+                  <Select value={selectedSize} onValueChange={setSelectedSize}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniqueSizes.map((sizeData) => (
+                        <SelectItem
+                          key={sizeData.ukuran}
+                          value={sizeData.ukuran}
+                          disabled={sizeData.stok === 0}>
+                          {sizeData.ukuran} {sizeData.stok === 0 && "(Out of Stock)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedSize && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Stock available: {selectedSizeStock}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Quantity Selection */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Quantity</h3>
+                <Select
+                  value={quantity.toString()}
+                  onValueChange={(value) => setQuantity(parseInt(value))}
+                  disabled={!selectedSize || selectedSizeStock === 0}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from(
+                      { length: Math.min(10, selectedSizeStock) },
+                      (_, i) => i + 1
+                    ).map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        {num}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!selectedSize && productSizes.length > 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Please select a size first
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Size Chart */}
             {product.size_chart && product.size_chart.measurements && product.size_chart.measurements.length > 0 && (
               <SizeChart
@@ -416,52 +474,8 @@ const ProductDetail = () => {
               />
             )}
 
-            {/* Size Selection */}
-            {productSizes.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Size</h3>
-                <Select value={selectedSize} onValueChange={setSelectedSize}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueSizes.map((sizeData) => (
-                      <SelectItem
-                        key={sizeData.ukuran}
-                        value={sizeData.ukuran}
-                        disabled={sizeData.stok === 0}>
-                        {sizeData.ukuran}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Quantity Selection */}
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Quantity</h3>
-              <Select
-                value={quantity.toString()}
-                onValueChange={(value) => setQuantity(parseInt(value))}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from(
-                    { length: Math.min(10, selectedSizeStock) },
-                    (_, i) => i + 1
-                  ).map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-3">
+            {/* Action Buttons - Desktop */}
+            <div className="hidden lg:flex flex-col gap-3">
               <Button
                 onClick={handleDirectCheckout}
                 disabled={
@@ -492,6 +506,61 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Sticky Mobile Buttons */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
+        {/* Size and Price Info */}
+        {selectedSize && (
+          <div className="px-4 py-2 bg-muted/50 border-b border-border">
+            <div className="flex justify-between items-center text-sm max-w-md mx-auto">
+              <span className="font-medium">Size: {selectedSize}</span>
+              <span className="font-bold text-primary">{formatCurrency(product.price)}</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Action Buttons */}
+        <div className="p-4">
+          <div className="flex gap-3 max-w-md mx-auto">
+            <Button
+              onClick={handleAddToCart}
+              disabled={
+                totalStock === 0 ||
+                !selectedSize ||
+                selectedSizeStock === 0
+              }
+              variant="outline"
+              className="flex-1"
+              size="lg">
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              {totalStock === 0 ? "Habis" : "Keranjang"}
+            </Button>
+            
+            <Button
+              onClick={handleDirectCheckout}
+              disabled={
+                totalStock === 0 ||
+                !selectedSize ||
+                selectedSizeStock === 0
+              }
+              className="flex-1"
+              size="lg">
+              <CreditCard className="w-4 h-4 mr-2" />
+              {totalStock === 0 ? "Habis" : "Beli Sekarang"}
+            </Button>
+          </div>
+          
+          {/* Size Selection Prompt */}
+          {!selectedSize && productSizes.length > 0 && (
+            <div className="mt-2 text-center">
+              <span className="text-sm text-muted-foreground">⬆️ Pilih ukuran terlebih dahulu</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Add bottom padding for mobile to prevent content being hidden behind sticky buttons */}
+      <div className="lg:hidden h-24"></div>
 
       <Footer />
     </div>
