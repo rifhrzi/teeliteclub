@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp, RefreshCw, Eye } from "lucide-react";
+import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp, RefreshCw, Eye, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/layout/Footer";
 import { OrdersSkeleton } from "@/components/loading/OrdersSkeleton";
@@ -34,6 +34,7 @@ interface Order {
   telepon_pembeli: string;
   shipping_address: string;
   payment_method: string;
+  payment_url?: string;
   shipping_method: string;
   tracking_number?: string;
   order_items: OrderItem[];
@@ -92,6 +93,21 @@ const Orders = () => {
       newExpanded.add(orderId);
     }
     setExpandedOrders(newExpanded);
+  };
+
+  const handleContinuePayment = (paymentUrl: string, orderNumber: string) => {
+    if (!paymentUrl) {
+      toast.error('Link pembayaran tidak tersedia');
+      return;
+    }
+    
+    console.log('Continuing payment for order:', orderNumber);
+    console.log('Payment URL:', paymentUrl);
+    
+    // Open payment URL in new tab
+    window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+    
+    toast.success('Halaman pembayaran dibuka di tab baru');
   };
 
   useEffect(() => {
@@ -331,11 +347,22 @@ const Orders = () => {
                         {formatDate(order.created_at)}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right space-y-2">
                       {getStatusBadge(order.status)}
-                      <div className="text-lg font-semibold mt-2">
+                      <div className="text-lg font-semibold">
                         {formatPrice(order.total)}
                       </div>
+                      {/* Continue Payment Button for pending orders */}
+                      {order.status === 'pending' && order.payment_url && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleContinuePayment(order.payment_url!, order.order_number)}
+                          className="w-full flex items-center gap-2"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Lanjutkan Pembayaran
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

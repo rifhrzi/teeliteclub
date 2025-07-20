@@ -124,9 +124,19 @@ serve(async (req) => {
     // Update order status if changed
     if (newOrderStatus !== order.status) {
       console.log('Updating order status from', order.status, 'to', newOrderStatus);
+      
+      // Prepare update object
+      const updateData: any = { status: newOrderStatus };
+      
+      // Clear payment_url if payment is successful
+      if (newOrderStatus === 'paid') {
+        updateData.payment_url = null;
+        console.log('Clearing payment URL for successful payment');
+      }
+      
       await supabaseService
         .from('orders')
-        .update({ status: newOrderStatus })
+        .update(updateData)
         .eq('id', order.id);
       
       order.status = newOrderStatus;

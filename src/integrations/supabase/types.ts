@@ -105,6 +105,7 @@ export type Database = {
           nama_pembeli: string | null
           order_number: string
           payment_method: string | null
+          payment_url: string | null
           shipping_address: string | null
           shipping_method: string | null
           status: string | null
@@ -121,6 +122,7 @@ export type Database = {
           nama_pembeli?: string | null
           order_number: string
           payment_method?: string | null
+          payment_url?: string | null
           shipping_address?: string | null
           shipping_method?: string | null
           status?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           nama_pembeli?: string | null
           order_number?: string
           payment_method?: string | null
+          payment_url?: string | null
           shipping_address?: string | null
           shipping_method?: string | null
           status?: string | null

@@ -433,10 +433,11 @@ serve(async (req) => {
     const midtransData = await midtransResponse.json();
     console.log('Midtrans response data:', midtransData);
 
-    // Update order with Midtrans token
+    // Update order with Midtrans token and payment URL
     await supabaseService
       .from('orders')
       .update({ 
+        payment_url: midtransData.redirect_url, // Store payment URL for continue payment functionality
         tracking_number: midtransData.token // Store Midtrans token in tracking_number field temporarily
       })
       .eq('id', order.id);

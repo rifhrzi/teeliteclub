@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Package, Calendar, CreditCard, Truck, MapPin, User, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Package, Calendar, CreditCard, Truck, MapPin, User, Clock, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "@/components/layout/Footer";
 import { OrderDetailSkeleton } from "@/components/loading/OrdersSkeleton";
+import { toast as sonnerToast } from "sonner";
 
 interface OrderItem {
   id: string;
@@ -33,6 +34,7 @@ interface Order {
   total: number;
   status: string;
   payment_method: string;
+  payment_url?: string;
   shipping_method: string;
   shipping_address: string;
   tracking_number?: string;
@@ -108,6 +110,25 @@ const OrderDetail = () => {
 
   const calculateSubTotal = () => {
     return order?.order_items?.reduce((total, item) => total + (item.harga * item.jumlah), 0) || 0;
+  };
+
+  const handleContinuePayment = () => {
+    if (!order?.payment_url) {
+      toast({
+        title: "Error",
+        description: "Link pembayaran tidak tersedia",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log('Continuing payment for order:', order.order_number);
+    console.log('Payment URL:', order.payment_url);
+    
+    // Open payment URL in new tab
+    window.open(order.payment_url, '_blank', 'noopener,noreferrer');
+    
+    sonnerToast.success('Halaman pembayaran dibuka di tab baru');
   };
 
   const loadOrderDetail = async () => {
@@ -364,6 +385,17 @@ const OrderDetail = () => {
                   <div className="flex justify-center">
                     {getStatusBadge(order.status)}
                   </div>
+                  
+                  {/* Continue Payment Button for pending orders */}
+                  {order.status === 'pending' && order.payment_url && (
+                    <Button
+                      onClick={handleContinuePayment}
+                      className="w-full flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Lanjutkan Pembayaran
+                    </Button>
+                  )}
                   
                   {/* Tracking number if shipped */}
                   {order.status === 'shipped' && order.tracking_number && (

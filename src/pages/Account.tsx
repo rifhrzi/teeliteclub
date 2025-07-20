@@ -10,9 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Eye, Package, Calendar } from "lucide-react";
+import { Loader2, Eye, Package, Calendar, ExternalLink } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 import { AccountSkeleton, AccountOrdersSkeleton } from "@/components/loading/AccountSkeleton";
+import { toast as sonnerToast } from "sonner";
 
 interface Order {
   id: string;
@@ -20,6 +21,7 @@ interface Order {
   total: number;
   status: string;
   created_at: string;
+  payment_url?: string;
 }
 
 const Account = () => {
@@ -66,7 +68,7 @@ const Account = () => {
 
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, total, status, created_at")
+        .select("id, order_number, total, status, created_at, payment_url")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -87,6 +89,25 @@ const Account = () => {
     } finally {
       setLoadingOrders(false);
     }
+  };
+
+  const handleContinuePayment = (paymentUrl: string, orderNumber: string) => {
+    if (!paymentUrl) {
+      toast({
+        title: "Error",
+        description: "Link pembayaran tidak tersedia",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log('Continuing payment for order:', orderNumber);
+    console.log('Payment URL:', paymentUrl);
+    
+    // Open payment URL in new tab
+    window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+    
+    sonnerToast.success('Halaman pembayaran dibuka di tab baru');
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -265,15 +286,28 @@ const Account = () => {
                             </div>
                             <div className="text-right space-y-2">
                               <p className="font-semibold text-lg">{formatCurrency(order.total)}</p>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/orders/${order.id}`)}
-                                className="flex items-center gap-2"
-                              >
-                                <Eye className="h-4 w-4" />
-                                Lihat Detail
-                              </Button>
+                              <div className="flex flex-col gap-2">
+                                {/* Continue Payment Button for pending orders */}
+                                {order.status === 'pending' && order.payment_url && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleContinuePayment(order.payment_url!, order.order_number)}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    Lanjutkan Pembayaran
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/orders/${order.id}`)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  Lihat Detail
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardContent>
