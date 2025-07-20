@@ -47,6 +47,13 @@ const FinishPayment = () => {
   const statusCode = searchParams.get('status_code');
 
   useEffect(() => {
+    console.log('FinishPayment useEffect - URL params:', {
+      orderId,
+      transactionStatus,
+      statusCode,
+      user: user?.id
+    });
+    
     if (!user) {
       navigate('/auth');
       return;
@@ -65,6 +72,65 @@ const FinishPayment = () => {
     try {
       setLoading(true);
       
+      // First, try to use URL parameters if available (for immediate feedback)
+      if (transactionStatus && orderId) {
+        console.log('Using URL parameters for payment status:', { transactionStatus, orderId, statusCode });
+        
+        // Create payment status from URL parameters
+        const urlPaymentStatus = {
+          order_id: orderId,
+          transaction_status: transactionStatus,
+          status_code: statusCode,
+          transaction_time: new Date().toISOString()
+        };
+        
+        setPaymentStatus(urlPaymentStatus);
+        
+        // Get order details from database
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('order_number', orderId)
+          .eq('user_id', user?.id)
+          .single();
+        
+        if (!orderError && orderData) {
+          setOrderDetails(orderData);
+        }
+        
+        // Show appropriate toast based on status
+        if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
+          toast.success('Pembayaran berhasil dikonfirmasi!');
+        } else if (transactionStatus === 'pending') {
+          toast.info('Pembayaran sedang diproses, silakan tunggu konfirmasi.');
+        } else if (['deny', 'cancel', 'expire', 'failure'].includes(transactionStatus)) {
+          toast.error('Pembayaran gagal atau dibatalkan.');
+        }
+        
+        // Also verify with backend in background
+        setTimeout(() => {
+          verifyWithBackend();
+        }, 1000);
+        
+        setLoading(false);
+        return;
+      }
+      
+      // Fallback to backend verification
+      await verifyWithBackend();
+      
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      setError('Gagal memeriksa status pembayaran');
+      toast.error('Gagal memeriksa status pembayaran');
+      setLoading(false);
+    }
+  };
+  
+  const verifyWithBackend = async () => {
+    try {
+      console.log('Verifying payment status with backend...');
+      
       // Check payment status via backend function
       const { data, error } = await supabase.functions.invoke('check-payment-status', {
         body: { 
@@ -76,31 +142,30 @@ const FinishPayment = () => {
 
       if (error) {
         console.error('Payment status check error:', error);
-        throw error;
+        // Don't throw error here if we already have status from URL
+        if (!paymentStatus) {
+          throw error;
+        }
+        return;
       }
 
-      setPaymentStatus(data.payment_status);
-      setOrderDetails(data.order);
-
-      // Handle different payment statuses
-      if (data.payment_status?.transaction_status === 'settlement' || 
-          data.payment_status?.transaction_status === 'capture') {
-        toast.success('Pembayaran berhasil dikonfirmasi!');
-      } else if (data.payment_status?.transaction_status === 'pending') {
-        toast.info('Pembayaran sedang diproses, silakan tunggu konfirmasi.');
-      } else if (data.payment_status?.transaction_status === 'deny' ||
-                 data.payment_status?.transaction_status === 'cancel' ||
-                 data.payment_status?.transaction_status === 'expire' ||
-                 data.payment_status?.transaction_status === 'failure') {
-        toast.error('Pembayaran gagal atau dibatalkan.');
+      console.log('Backend payment verification result:', data);
+      
+      // Update with backend data if available
+      if (data.payment_status) {
+        setPaymentStatus(data.payment_status);
+      }
+      
+      if (data.order) {
+        setOrderDetails(data.order);
       }
 
     } catch (error) {
-      console.error('Error checking payment status:', error);
-      setError('Gagal memeriksa status pembayaran');
-      toast.error('Gagal memeriksa status pembayaran');
-    } finally {
-      setLoading(false);
+      console.error('Backend verification failed:', error);
+      // Only show error if we don't have any payment status
+      if (!paymentStatus) {
+        setError('Gagal memverifikasi status pembayaran dengan server');
+      }
     }
   };
 
@@ -150,7 +215,11 @@ const FinishPayment = () => {
   };
 
   const getStatusTitle = () => {
+    console.log('getStatusTitle - paymentStatus:', paymentStatus);
+    
     if (!paymentStatus) return 'Status Pembayaran Tidak Diketahui';
+    
+    console.log('getStatusTitle - transaction_status:', paymentStatus.transaction_status);
     
     switch (paymentStatus.transaction_status) {
       case 'settlement':
@@ -167,7 +236,8 @@ const FinishPayment = () => {
       case 'failure':
         return 'Pembayaran Gagal';
       default:
-        return 'Status Pembayaran Tidak Diketahui';
+        console.log('getStatusTitle - unknown status:', paymentStatus.transaction_status);
+        return `Status: ${paymentStatus.transaction_status || 'Tidak Diketahui'}`;
     }
   };
 

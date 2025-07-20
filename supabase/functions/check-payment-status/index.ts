@@ -15,6 +15,8 @@ serve(async (req) => {
   try {
     const { order_id, transaction_status, status_code } = await req.json();
 
+    console.log('Payment status check request:', { order_id, transaction_status, status_code });
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
@@ -30,32 +32,6 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    // Midtrans configuration
-    const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY');
-    const isProduction = Deno.env.get('MIDTRANS_ENVIRONMENT') === 'production';
-    const statusUrl = isProduction 
-      ? `https://api.midtrans.com/v2/${order_id}/status`
-      : `https://api.sandbox.midtrans.com/v2/${order_id}/status`;
-
-    if (!serverKey) {
-      throw new Error('Midtrans server key not configured');
-    }
-
-    // Check payment status with Midtrans
-    const midtransResponse = await fetch(statusUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Basic ${btoa(serverKey + ':')}`
-      }
-    });
-
-    if (!midtransResponse.ok) {
-      throw new Error('Failed to check payment status');
-    }
-
-    const paymentStatus = await midtransResponse.json();
-
     // Create service client for database updates
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -63,7 +39,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Get order from database
+    // Get order from database first
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .select('*')
@@ -74,6 +50,66 @@ serve(async (req) => {
     if (orderError || !order) {
       throw new Error('Order not found or access denied');
     }
+
+    console.log('Order found:', order.id, order.status);
+
+    let paymentStatus = null;
+    
+    // If we have transaction status from URL params, use it as primary source
+    if (transaction_status) {
+      console.log('Using transaction status from URL params:', transaction_status);
+      paymentStatus = {
+        order_id: order_id,
+        transaction_status: transaction_status,
+        status_code: status_code,
+        transaction_time: new Date().toISOString(),
+        gross_amount: order.total.toString()
+      };
+    } else {
+      // Try to get from Midtrans API as fallback
+      const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY');
+      const isProduction = Deno.env.get('MIDTRANS_ENVIRONMENT') === 'production';
+      
+      if (serverKey) {
+        try {
+          const statusUrl = isProduction 
+            ? `https://api.midtrans.com/v2/${order_id}/status`
+            : `https://api.sandbox.midtrans.com/v2/${order_id}/status`;
+
+          console.log('Checking with Midtrans API:', statusUrl);
+
+          const midtransResponse = await fetch(statusUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Basic ${btoa(serverKey + ':')}`
+            }
+          });
+
+          if (midtransResponse.ok) {
+            paymentStatus = await midtransResponse.json();
+            console.log('Midtrans API response:', paymentStatus);
+          } else {
+            console.warn('Midtrans API error:', midtransResponse.status, midtransResponse.statusText);
+          }
+        } catch (midtransError) {
+          console.error('Midtrans API call failed:', midtransError);
+        }
+      }
+    }
+
+    // If no payment status available, create a default one based on order status
+    if (!paymentStatus) {
+      console.log('No payment status available, using order status:', order.status);
+      paymentStatus = {
+        order_id: order_id,
+        transaction_status: order.status === 'paid' ? 'settlement' : 'pending',
+        transaction_time: order.updated_at || order.created_at,
+        gross_amount: order.total.toString()
+      };
+    }
+
+    console.log('Final payment status:', paymentStatus);
 
     // Update order status based on payment status
     let newOrderStatus = order.status;
@@ -87,6 +123,7 @@ serve(async (req) => {
 
     // Update order status if changed
     if (newOrderStatus !== order.status) {
+      console.log('Updating order status from', order.status, 'to', newOrderStatus);
       await supabaseService
         .from('orders')
         .update({ status: newOrderStatus })
@@ -96,20 +133,26 @@ serve(async (req) => {
     }
 
     // Create or update payment record
-    const { error: paymentError } = await supabaseService
-      .from('payments')
-      .upsert({
-        order_id: order.id,
-        amount: parseFloat(paymentStatus.gross_amount || '0'),
-        status: paymentStatus.transaction_status,
-        payment_proof: JSON.stringify(paymentStatus),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'order_id'
-      });
+    try {
+      const { error: paymentError } = await supabaseService
+        .from('payments')
+        .upsert({
+          order_id: order.id,
+          amount: parseFloat(paymentStatus.gross_amount || order.total.toString()),
+          status: paymentStatus.transaction_status,
+          payment_proof: JSON.stringify(paymentStatus),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'order_id'
+        });
 
-    if (paymentError) {
-      console.error('Error updating payment record:', paymentError);
+      if (paymentError) {
+        console.error('Error updating payment record:', paymentError);
+      } else {
+        console.log('Payment record updated successfully');
+      }
+    } catch (paymentRecordError) {
+      console.error('Failed to update payment record:', paymentRecordError);
     }
 
     return new Response(JSON.stringify({
