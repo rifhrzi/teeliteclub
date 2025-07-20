@@ -45,6 +45,8 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
+  console.log('Orders page - user:', user?.id, 'email:', user?.email);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -92,16 +94,42 @@ const Orders = () => {
   };
 
   useEffect(() => {
+    console.log('Orders useEffect - user:', user);
     if (!user) {
+      console.log('No user found, redirecting to auth');
       navigate('/auth');
       return;
     }
+    console.log('User found, fetching orders');
     fetchOrders();
   }, [user, navigate]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      
+      if (!user?.id) {
+        console.error('No user ID available for fetching orders');
+        toast.error('User not authenticated');
+        return;
+      }
+
+      console.log('Fetching orders for user ID:', user.id);
+
+      // First, try a simple query to test connectivity
+      const { data: testData, error: testError } = await supabase
+        .from('orders')
+        .select('id, order_number, user_id')
+        .limit(5);
+
+      if (testError) {
+        console.error('Test query failed:', testError);
+      } else {
+        console.log('Test query successful, total orders in DB:', testData?.length);
+        console.log('Sample orders:', testData);
+      }
+
+      // Now fetch user's orders
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -118,10 +146,16 @@ const Orders = () => {
             )
           )
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Fetched orders:', data?.length || 0, 'orders found');
+      console.log('Orders data:', data);
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);

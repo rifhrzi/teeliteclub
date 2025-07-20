@@ -25,6 +25,8 @@ const Account = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+
+  console.log('Account page - user:', user?.id, 'profile:', profile?.id);
   
   const [formData, setFormData] = useState({
     nama: profile?.nama || "",
@@ -46,14 +48,17 @@ const Account = () => {
     if (user) {
       fetchOrders();
     }
-  }, [user, fetchOrders]);
+  }, [user]);
 
   const fetchOrders = async () => {
     try {
       if (!user?.id) {
-        console.error('User not authenticated');
+        console.error('User not authenticated for fetchOrders');
+        setLoadingOrders(false);
         return;
       }
+
+      console.log('Fetching orders for user:', user.id);
 
       const { data, error } = await supabase
         .from("orders")
@@ -61,7 +66,12 @@ const Account = () => {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error fetching orders:", error);
+        throw error;
+      }
+
+      console.log('Orders fetched successfully:', data?.length || 0, 'orders');
       setOrders(data || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -119,9 +129,13 @@ const Account = () => {
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
               <p className="text-muted-foreground">Please log in to view your account.</p>
+              <Button onClick={() => window.location.href = '/auth'} className="mt-4">
+                Login
+              </Button>
             </CardContent>
           </Card>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -131,6 +145,19 @@ const Account = () => {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">My Account</h1>
+        
+        {/* Debug Information */}
+        <Card className="mb-4 bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-2">Debug Info:</h3>
+            <p><strong>User ID:</strong> {user?.id || 'Not found'}</p>
+            <p><strong>User Email:</strong> {user?.email || 'Not found'}</p>
+            <p><strong>Profile ID:</strong> {profile?.id || 'Not found'}</p>
+            <p><strong>Profile Name:</strong> {profile?.nama || 'Not found'}</p>
+            <p><strong>Orders Loading:</strong> {loadingOrders ? 'Yes' : 'No'}</p>
+            <p><strong>Orders Count:</strong> {orders.length}</p>
+          </CardContent>
+        </Card>
         
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
