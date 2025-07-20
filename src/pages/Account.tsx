@@ -58,32 +58,94 @@ const Account = () => {
 
   const fetchOrders = async () => {
     try {
+      setLoadingOrders(true);
+      
       if (!user?.id) {
-        console.error('User not authenticated for fetchOrders');
+        console.error('Account fetchOrders - No user ID available');
+        toast({
+          title: "Error",
+          description: "User not authenticated. Please log in again.",
+          variant: "destructive",
+        });
         setLoadingOrders(false);
         return;
       }
 
-      console.log('Fetching orders for user:', user.id);
+      console.log('Account fetchOrders - Starting fetch for user:', user.id);
 
-      const { data, error } = await supabase
+      // First, test basic connectivity with a simple query
+      console.log('Account fetchOrders - Testing basic connectivity...');
+      const { data: testData, error: testError } = await supabase
+        .from('orders')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('Account fetchOrders - Basic connectivity test failed:', testError);
+        throw new Error(`Database connectivity issue: ${testError.message}`);
+      }
+      
+      console.log('Account fetchOrders - Basic connectivity OK');
+
+      // Try to fetch orders with payment_url, fallback if field doesn't exist
+      let data, error;
+      console.log('Account fetchOrders - Attempting full query with payment_url...');
+      
+      const fullResult = await supabase
         .from("orders")
         .select("id, order_number, total, status, created_at, payment_url")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Supabase error fetching orders:", error);
-        throw error;
+      
+      // Check if the error is due to missing payment_url column
+      if (fullResult.error && fullResult.error.code === '42703' && fullResult.error.message.includes('payment_url')) {
+        console.warn("Account fetchOrders - payment_url column doesn't exist, using fallback query");
+        const fallbackResult = await supabase
+          .from("orders")
+          .select("id, order_number, total, status, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+        console.log('Account fetchOrders - Fallback query result:', { 
+          dataLength: data?.length, 
+          error: error?.message,
+          errorCode: error?.code,
+          errorDetails: error?.details 
+        });
+      } else {
+        data = fullResult.data;
+        error = fullResult.error;
+        console.log('Account fetchOrders - Full query result:', { 
+          dataLength: data?.length, 
+          error: error?.message,
+          errorCode: error?.code,
+          errorDetails: error?.details 
+        });
       }
 
-      console.log('Orders fetched successfully:', data?.length || 0, 'orders');
+      if (error) {
+        console.error("Account fetchOrders - Supabase error:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        throw new Error(`Database query failed: ${error.message} (Code: ${error.code})`);
+      }
+
+      console.log('Account fetchOrders - Success! Orders fetched:', data?.length || 0);
+      console.log('Account fetchOrders - Sample data:', data?.slice(0, 2));
       setOrders(data || []);
+      
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error("Account fetchOrders - Caught error:", error);
+      console.error("Account fetchOrders - Error type:", typeof error);
+      console.error("Account fetchOrders - Error constructor:", error?.constructor?.name);
+      
       toast({
         title: "Error",
-        description: "Failed to load orders",
+        description: `Failed to load orders: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -262,9 +324,26 @@ const Account = () => {
                 {loadingOrders ? (
                   <AccountOrdersSkeleton />
                 ) : orders.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">
-                    No orders found. Start shopping to see your orders here!
-                  </p>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">
+                      No orders found. Start shopping to see your orders here!
+                    </p>
+                    {/* Debug info when no orders */}
+                    <div className="mt-4 p-4 bg-gray-100 rounded text-sm text-left max-w-md mx-auto">
+                      <h3 className="font-semibold mb-2">Debug Info:</h3>
+                      <p><strong>User ID:</strong> {user?.id || 'Not found'}</p>
+                      <p><strong>User Email:</strong> {user?.email || 'Not found'}</p>
+                      <p><strong>Loading:</strong> {loadingOrders ? 'Yes' : 'No'}</p>
+                      <p><strong>Orders Array Length:</strong> {orders.length}</p>
+                      <p><strong>Profile Loaded:</strong> {profile ? 'Yes' : 'No'}</p>
+                      <button 
+                        onClick={fetchOrders}
+                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs"
+                      >
+                        Retry Fetch Orders
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {orders.map((order) => (

@@ -145,12 +145,42 @@ const OrderDetail = () => {
       
       // Load order details first
       console.log("Fetching order data...");
-      const { data: orderData, error: orderError } = await supabase
+      // Try to fetch with all fields, fallback if some fields don't exist
+      let orderData, orderError;
+      
+      // First, try with all fields including payment_url
+      console.log('OrderDetail loadOrderDetail - Attempting full query with all fields...');
+      
+      const fullResult = await supabase
         .from("orders")
         .select("*")
         .eq("id", id)
         .eq("user_id", user.id) // Ensure user can only access their own orders
         .single();
+      
+      // Check if the error is due to missing payment_url column
+      if (fullResult.error && fullResult.error.code === '42703' && fullResult.error.message.includes('payment_url')) {
+        console.warn("OrderDetail loadOrderDetail - payment_url column doesn't exist, using fallback query");
+        const fallbackResult = await supabase
+          .from("orders")
+          .select("id, order_number, nama_pembeli, email_pembeli, telepon_pembeli, total, status, payment_method, shipping_method, shipping_address, tracking_number, created_at, updated_at, user_id")
+          .eq("id", id)
+          .eq("user_id", user.id)
+          .single();
+        orderData = fallbackResult.data;
+        orderError = fallbackResult.error;
+        console.log('OrderDetail loadOrderDetail - Fallback query result:', { 
+          dataExists: !!orderData, 
+          error: orderError?.message 
+        });
+      } else {
+        orderData = fullResult.data;
+        orderError = fullResult.error;
+        console.log('OrderDetail loadOrderDetail - Full query result:', { 
+          dataExists: !!orderData, 
+          error: orderError?.message 
+        });
+      }
 
       if (orderError) {
         console.error("Order fetch error:", orderError);
@@ -232,6 +262,9 @@ const OrderDetail = () => {
       };
 
       console.log("Final order data:", completeOrderData);
+      console.log("Order status:", completeOrderData.status);
+      console.log("Payment URL exists:", !!completeOrderData.payment_url);
+      console.log("Payment URL value:", completeOrderData.payment_url);
       setOrder(completeOrderData);
 
     } catch (error) {
@@ -387,14 +420,24 @@ const OrderDetail = () => {
                   </div>
                   
                   {/* Continue Payment Button for pending orders */}
-                  {order.status === 'pending' && order.payment_url && (
-                    <Button
-                      onClick={handleContinuePayment}
-                      className="w-full flex items-center gap-2"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Lanjutkan Pembayaran
-                    </Button>
+                  {order.status === 'pending' && (
+                    <div>
+                      {order.payment_url ? (
+                        <Button
+                          onClick={handleContinuePayment}
+                          className="w-full flex items-center gap-2"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Lanjutkan Pembayaran
+                        </Button>
+                      ) : (
+                        <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                          <p className="text-sm text-orange-700 dark:text-orange-300">
+                            Link pembayaran tidak tersedia. Silakan hubungi customer service.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
                   
                   {/* Tracking number if shipped */}
