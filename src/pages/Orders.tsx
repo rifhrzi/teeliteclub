@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp, RefreshCw, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/layout/Footer";
+import { OrdersSkeleton } from "@/components/loading/OrdersSkeleton";
 
 interface OrderItem {
   id: string;
@@ -142,34 +143,99 @@ const Orders = () => {
         console.log('Sample orders:', testData);
       }
 
-      // Now fetch user's orders
-      const { data, error } = await supabase
+      // Now fetch user's orders - using robust approach to avoid relationship errors
+      console.log('Fetching user orders...');
+      
+      // First, get orders without relationships
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            product_id,
-            jumlah,
-            harga,
-            ukuran,
-            product:products (
-              name,
-              image_url
-            )
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (ordersError) {
+        console.error('Orders fetch error:', ordersError);
+        throw ordersError;
       }
 
-      console.log('Fetched orders:', data?.length || 0, 'orders found');
-      console.log('Orders data:', data);
-      setOrders(data || []);
+      console.log('Fetched orders:', ordersData?.length || 0, 'orders found');
+
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([]);
+        return;
+      }
+
+      // Now fetch order items for each order
+      const ordersWithItems = await Promise.all(
+        ordersData.map(async (order) => {
+          try {
+            // Try relationship query first
+            const { data: relationshipData, error: relationshipError } = await supabase
+              .from('order_items')
+              .select(`
+                id,
+                product_id,
+                jumlah,
+                harga,
+                ukuran,
+                product:products!order_items_product_id_fkey (
+                  name,
+                  image_url
+                )
+              `)
+              .eq('order_id', order.id);
+
+            if (relationshipError) {
+              console.warn(`Relationship query failed for order ${order.id}, using fallback:`, relationshipError);
+              
+              // Fallback: Load order items and products separately
+              const { data: simpleItemsData, error: simpleItemsError } = await supabase
+                .from('order_items')
+                .select('id, product_id, jumlah, harga, ukuran')
+                .eq('order_id', order.id);
+
+              if (simpleItemsError) {
+                console.error(`Error fetching order items for order ${order.id}:`, simpleItemsError);
+                return { ...order, order_items: [] };
+              }
+
+              // Get unique product IDs
+              const productIds = [...new Set(simpleItemsData?.map(item => item.product_id))] as string[];
+              
+              if (productIds.length > 0) {
+                // Load products separately
+                const { data: productsData, error: productsError } = await supabase
+                  .from('products')
+                  .select('id, name, image_url')
+                  .in('id', productIds);
+
+                if (productsError) {
+                  console.error(`Error fetching products for order ${order.id}:`, productsError);
+                  return { ...order, order_items: simpleItemsData || [] };
+                }
+
+                // Combine the data manually
+                const itemsWithProducts = simpleItemsData?.map(item => ({
+                  ...item,
+                  product: productsData?.find(product => product.id === item.product_id)
+                }));
+
+                return { ...order, order_items: itemsWithProducts || [] };
+              } else {
+                return { ...order, order_items: simpleItemsData || [] };
+              }
+            }
+
+            return { ...order, order_items: relationshipData || [] };
+          } catch (itemError) {
+            console.error(`Error loading items for order ${order.id}:`, itemError);
+            return { ...order, order_items: [] };
+          }
+        })
+      );
+
+      console.log('Orders with items loaded:', ordersWithItems);
+      setOrders(ordersWithItems);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Gagal memuat riwayat pesanan');
@@ -186,8 +252,17 @@ const Orders = () => {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">Memuat riwayat pesanan...</div>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/')}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Kembali ke Beranda
+          </Button>
+          <OrdersSkeleton />
         </div>
+        <Footer />
       </div>
     );
   }
@@ -274,19 +349,30 @@ const Orders = () => {
                           {order.order_items.length} produk
                         </span>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleOrderDetails(order.id)}
-                        className="flex items-center gap-2"
-                      >
-                        {expandedOrders.has(order.id) ? 'Sembunyikan Detail' : 'Lihat Seluruhnya'}
-                        {expandedOrders.has(order.id) ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/orders/${order.id}`)}
+                          className="flex items-center gap-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Lihat Detail
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleOrderDetails(order.id)}
+                          className="flex items-center gap-2"
+                        >
+                          {expandedOrders.has(order.id) ? 'Sembunyikan' : 'Lihat Ringkasan'}
+                          {expandedOrders.has(order.id) ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Expanded Details */}

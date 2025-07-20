@@ -26,6 +26,7 @@ import { Footer } from "@/components/layout/Footer";
 import { ProductHeader } from "@/components/layout/ProductHeader";
 import { SizeChart } from "@/components/shop/SizeChart";
 import type { SizeChartData } from "@/components/admin/SizeChartEditor";
+import { ProductDetailSkeleton } from "@/components/loading/ProductSkeleton";
 
 interface Product {
   id: string;
@@ -249,20 +250,8 @@ const ProductDetail = () => {
           profile={profile}
           signOut={signOut}
         />
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-muted rounded w-32"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-96 bg-muted rounded"></div>
-              <div className="space-y-4">
-                <div className="h-8 bg-muted rounded w-3/4"></div>
-                <div className="h-4 bg-muted rounded w-1/2"></div>
-                <div className="h-20 bg-muted rounded"></div>
-                <div className="h-12 bg-muted rounded w-1/3"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProductDetailSkeleton />
+        <Footer />
       </div>
     );
   }

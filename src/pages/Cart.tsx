@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Footer } from "@/components/layout/Footer";
+import { CartSkeleton } from "@/components/loading/PageSkeleton";
 
 const Cart = () => {
   const { items, loading, updateQuantity, removeFromCart, getCartTotal, getCartItemsCount } = useCart();
@@ -24,11 +25,8 @@ const Cart = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-muted-foreground">Memuat keranjang...</p>
-          </div>
-        </div>
+        <CartSkeleton />
+        <Footer />
       </div>
     );
   }

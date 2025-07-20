@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ArrowLeft, Package, Truck, CheckCircle, Clock, AlertCircle, User, MapPin, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface OrderItem {
   id: string;
@@ -47,12 +48,20 @@ interface Order {
 const OrderDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [showTrackingDialog, setShowTrackingDialog] = useState(false);
   const { toast } = useToast();
+
+  console.log('OrderDetail - User and profile info:', {
+    userId: user?.id,
+    userEmail: user?.email,
+    profileRole: profile?.role,
+    orderId: id
+  });
 
   const statusOptions = [
     { value: "pending", label: "Pending" },
@@ -85,44 +94,120 @@ const OrderDetail = () => {
   };
 
   const loadOrderDetail = async () => {
-    if (!id) return;
+    if (!id) {
+      console.error("No order ID provided");
+      navigate("/admin/orders");
+      return;
+    }
+
+    console.log("Loading order detail for ID:", id);
 
     try {
       setLoading(true);
       
       // Load order details
+      console.log("Fetching order data...");
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error("Order fetch error:", orderError);
+        throw orderError;
+      }
+
+      console.log("Order data loaded:", orderData);
       setOrder(orderData);
 
       // Load order items with product details
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("order_items")
-        .select(`
-          *,
-          product:products!product_id (
-            name,
-            image_url,
-            gambar
-          )
-        `)
-        .eq("order_id", id);
+      console.log("Fetching order items...");
+      let itemsData = null;
+      
+      // Try the relationship query first
+      try {
+        const { data: relationshipData, error: relationshipError } = await supabase
+          .from("order_items")
+          .select(`
+            *,
+            product:products!order_items_product_id_fkey (
+              name,
+              image_url,
+              gambar
+            )
+          `)
+          .eq("order_id", id);
 
-      if (itemsError) throw itemsError;
+        if (relationshipError) {
+          console.warn("Relationship query failed, trying fallback:", relationshipError);
+          throw relationshipError;
+        }
+
+        itemsData = relationshipData;
+        console.log("Order items loaded via relationship:", itemsData?.length || 0, "items");
+      } catch (relationshipError) {
+        console.log("Using fallback method to load order items and products separately...");
+        
+        // Fallback: Load order items first, then products separately
+        const { data: simpleItemsData, error: simpleItemsError } = await supabase
+          .from("order_items")
+          .select("*")
+          .eq("order_id", id);
+
+        if (simpleItemsError) {
+          console.error("Simple order items fetch error:", simpleItemsError);
+          throw simpleItemsError;
+        }
+
+        // Get unique product IDs
+        const productIds = [...new Set(simpleItemsData?.map(item => item.product_id))];
+        
+        if (productIds.length > 0) {
+          // Load products separately
+          const { data: productsData, error: productsError } = await supabase
+            .from("products")
+            .select("id, name, image_url, gambar")
+            .in("id", productIds);
+
+          if (productsError) {
+            console.error("Products fetch error:", productsError);
+            throw productsError;
+          }
+
+          // Combine the data manually
+          itemsData = simpleItemsData?.map(item => ({
+            ...item,
+            product: productsData?.find(product => product.id === item.product_id)
+          }));
+        } else {
+          itemsData = simpleItemsData;
+        }
+
+        console.log("Order items loaded via fallback method:", itemsData?.length || 0, "items");
+      }
+
+      console.log("Final order items data:", itemsData);
       setOrderItems(itemsData || []);
 
     } catch (error) {
       console.error("Error loading order detail:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load order details",
-        variant: "destructive",
-      });
+      
+      // More specific error handling
+      if (error.code === 'PGRST116') {
+        toast({
+          title: "Order Not Found",
+          description: "The requested order could not be found.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to load order details: ${error.message || 'Unknown error'}`,
+          variant: "destructive",
+        });
+      }
+      
       navigate("/admin/orders");
     } finally {
       setLoading(false);
@@ -256,6 +341,14 @@ const OrderDetail = () => {
       <AdminLayout>
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-4">Order not found</h2>
+          <div className="mb-6 p-4 bg-gray-100 rounded text-sm text-left max-w-md mx-auto">
+            <h3 className="font-semibold mb-2">Debug Info:</h3>
+            <p><strong>Order ID:</strong> {id || 'Not provided'}</p>
+            <p><strong>User ID:</strong> {user?.id || 'Not logged in'}</p>
+            <p><strong>User Email:</strong> {user?.email || 'Not available'}</p>
+            <p><strong>User Role:</strong> {profile?.role || 'Not loaded'}</p>
+            <p><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</p>
+          </div>
           <Button onClick={() => navigate("/admin/orders")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Orders

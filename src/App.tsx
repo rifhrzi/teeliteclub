@@ -23,6 +23,7 @@ const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const FinishPayment = lazy(() => import("./pages/FinishPayment"));
 const PaymentError = lazy(() => import("./pages/PaymentError"));
 const Orders = lazy(() => import("./pages/Orders"));
+const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 
 // Admin pages (lazy loaded - biggest impact on bundle size)
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -61,6 +62,7 @@ const App = () => (
                 <Route path="/finish-payment" element={<FinishPayment />} />
                 <Route path="/payment-error" element={<PaymentError />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/orders/:id" element={<OrderDetail />} />
                 <Route path="/account" element={<Account />} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="/admin/products" element={<AdminRoute><ProductManagement /></AdminRoute>} />

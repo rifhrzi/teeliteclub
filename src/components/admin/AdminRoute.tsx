@@ -11,35 +11,40 @@ interface AdminRouteProps {
 export function AdminRoute({ children }: AdminRouteProps) {
   const { user, profile, loading } = useAuth();
 
-  logger.debug('AdminRoute access check', { 
+  console.log('AdminRoute access check', { 
     userId: user?.id, 
+    userEmail: user?.email,
     userRole: profile?.role, 
-    loading 
+    loading,
+    profileExists: !!profile
   });
 
   // Show loading while auth is loading OR while we have a user but no profile yet
   if (loading || (user && !profile)) {
-    logger.debug('AdminRoute - Authentication still loading');
+    console.log('AdminRoute - Authentication still loading');
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Checking admin permissions...</p>
+        </div>
       </div>
     );
   }
 
   if (!user) {
-    logger.info('AdminRoute - Unauthorized access attempt, redirecting to auth');
+    console.log('AdminRoute - Unauthorized access attempt, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 
   if (profile?.role !== 'admin') {
-    logger.warn('AdminRoute - Non-admin user attempted admin access', { 
+    console.warn('AdminRoute - Non-admin user attempted admin access', { 
       userId: user.id, 
       userRole: profile?.role 
     });
     return <Navigate to="/" replace />;
   }
 
-  logger.debug('AdminRoute - Admin access granted');
+  console.log('AdminRoute - Admin access granted for user:', user.email);
   return <>{children}</>;
 }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { HeroSettings } from "@/components/admin/HeroSettings";
+import { DashboardSkeleton } from "@/components/loading/PageSkeleton";
 
 interface DashboardStats {
   totalProducts: number;
@@ -138,9 +139,7 @@ const AdminDashboard = () => {
       <AdminLayout>
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Memuat data...</p>
-          </div>
+          <DashboardSkeleton />
         </div>
       </AdminLayout>
     );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -6,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, Package, Calendar } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
+import { AccountSkeleton, AccountOrdersSkeleton } from "@/components/loading/AccountSkeleton";
 
 interface Order {
   id: string;
@@ -20,6 +23,7 @@ interface Order {
 }
 
 const Account = () => {
+  const navigate = useNavigate();
   const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -121,6 +125,25 @@ const Account = () => {
     }).format(amount);
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary">Menunggu Pembayaran</Badge>;
+      case 'paid':
+        return <Badge variant="default">Dibayar</Badge>;
+      case 'processing':
+        return <Badge variant="outline">Diproses</Badge>;
+      case 'shipped':
+        return <Badge variant="outline">Dikirim</Badge>;
+      case 'delivered':
+        return <Badge variant="default">Selesai</Badge>;
+      case 'cancelled':
+        return <Badge variant="destructive">Dibatalkan</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -144,31 +167,18 @@ const Account = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">My Account</h1>
-        
-        {/* Debug Information */}
-        <Card className="mb-4 bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-2">Debug Info:</h3>
-            <p><strong>User ID:</strong> {user?.id || 'Not found'}</p>
-            <p><strong>User Email:</strong> {user?.email || 'Not found'}</p>
-            <p><strong>Profile ID:</strong> {profile?.id || 'Not found'}</p>
-            <p><strong>Profile Name:</strong> {profile?.nama || 'Not found'}</p>
-            <p><strong>Orders Loading:</strong> {loadingOrders ? 'Yes' : 'No'}</p>
-            <p><strong>Orders Count:</strong> {orders.length}</p>
-          </CardContent>
-        </Card>
+        <h1 className="text-3xl font-bold mb-8">Akun Saya</h1>
         
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="profile">Profil</TabsTrigger>
+            <TabsTrigger value="orders">Pesanan</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>Informasi Profil</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -225,13 +235,11 @@ const Account = () => {
           <TabsContent value="orders" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Order History</CardTitle>
+                <CardTitle>Riwayat Pesanan</CardTitle>
               </CardHeader>
               <CardContent>
                 {loadingOrders ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
+                  <AccountOrdersSkeleton />
                 ) : orders.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">
                     No orders found. Start shopping to see your orders here!
@@ -239,24 +247,47 @@ const Account = () => {
                 ) : (
                   <div className="space-y-4">
                     {orders.map((order) => (
-                      <div
-                        key={order.id}
-                        className="border rounded-lg p-4 flex justify-between items-center"
-                      >
-                        <div>
-                          <p className="font-medium">Order #{order.order_number}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDate(order.created_at)}
-                          </p>
-                          <p className="text-sm">
-                            Status: <span className="capitalize">{order.status}</span>
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">{formatCurrency(order.total)}</p>
-                        </div>
-                      </div>
+                      <Card key={order.id} className="p-0">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                                <p className="font-medium">Pesanan #{order.order_number}</p>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
+                                {formatDate(order.created_at)}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getStatusBadge(order.status)}
+                              </div>
+                            </div>
+                            <div className="text-right space-y-2">
+                              <p className="font-semibold text-lg">{formatCurrency(order.total)}</p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/orders/${order.id}`)}
+                                className="flex items-center gap-2"
+                              >
+                                <Eye className="h-4 w-4" />
+                                Lihat Detail
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
+                    <div className="text-center pt-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => navigate('/orders')}
+                        className="w-full"
+                      >
+                        Lihat Semua Pesanan
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
