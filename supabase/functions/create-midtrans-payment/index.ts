@@ -357,6 +357,8 @@ serve(async (req) => {
       }
     }
 
+    const baseUrl = Deno.env.get('ALLOWED_ORIGIN') || 'http://localhost:5173';
+    
     const transactionData = {
       transaction_details: {
         order_id: order.order_number,
@@ -377,6 +379,11 @@ serve(async (req) => {
       },
       credit_card: {
         secure: true
+      },
+      callbacks: {
+        finish: `${baseUrl}/finish-payment?order_id=${order.order_number}&transaction_status={transaction_status}&status_code={status_code}`,
+        unfinish: `${baseUrl}/payment-error?order_id=${order.order_number}&transaction_status=cancel&error_type=cancelled`,
+        error: `${baseUrl}/payment-error?order_id=${order.order_number}&transaction_status=failure&error_type=system&error_code={status_code}`
       },
       // Add additional fields for production compliance
       ...(isProduction && {

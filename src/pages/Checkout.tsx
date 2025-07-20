@@ -137,82 +137,47 @@ const Checkout = () => {
       }
     } catch (error) {
       console.error('Error creating payment:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error constructor:', error?.constructor?.name);
       
-      // Try to get detailed error information
+      // Handle different types of errors and redirect accordingly
+      let errorType = 'system';
+      let errorMessage = 'Gagal membuat pembayaran';
+      
       if (error && typeof error === 'object') {
-        // Log all properties of the error object
-        console.error('Error properties:', Object.keys(error));
-        console.error('Full error object:', JSON.stringify(error, null, 2));
-        
-        // Check if it's a FunctionsHttpError with context
-        if ('context' in error && error.context) {
-          console.error('Error context:', error.context);
-          
-          // Try to read the response if it's a Response object
-          if (error.context instanceof Response) {
-            try {
-              const errorText = await error.context.text();
-              console.error('Error response text:', errorText);
-              const errorData = JSON.parse(errorText);
-              toast.error(`Payment error: ${errorData.error || errorData.message || 'Unknown error'}`);
-              return;
-            } catch (responseError) {
-              console.error('Failed to read response:', responseError);
-            }
-          }
-          
-          if (error.context.body) {
-            console.error('Error response body:', error.context.body);
-            try {
-              // Handle ReadableStream response body
-              if (error.context.body instanceof ReadableStream) {
-                const reader = error.context.body.getReader();
-                const decoder = new TextDecoder();
-                let result = '';
-                
-                const readStream = async () => {
-                  try {
-                    while (true) {
-                      const { done, value } = await reader.read();
-                      if (done) break;
-                      result += decoder.decode(value, { stream: true });
-                    }
-                    result += decoder.decode(); // Final decode
-                    
-                    console.error('Error response text:', result);
-                    const errorData = JSON.parse(result);
-                    toast.error(`Payment error: ${errorData.error || errorData.message || 'Unknown error'}`);
-                  } catch (streamError) {
-                    console.error('Failed to read error stream:', streamError);
-                    toast.error('Payment failed - Unable to read error details');
-                  }
-                };
-                
-                readStream();
-                return;
-              } else if (typeof error.context.body === 'string') {
-                const errorData = JSON.parse(error.context.body);
-                toast.error(`Payment error: ${errorData.error || errorData.message || 'Unknown error'}`);
-                return;
-              }
-            } catch (parseError) {
-              console.error('Failed to parse error response:', parseError);
-            }
-          }
+        // Check if it's a network error
+        if (error.name === 'TypeError' || error.message?.includes('fetch')) {
+          errorType = 'network';
+          errorMessage = 'Koneksi bermasalah';
         }
-        
-        // Check if error has a message property
-        if (error.message) {
-          console.error('Error message:', error.message);
-          toast.error(`Gagal membuat pembayaran: ${error.message}`);
-        } else {
-          toast.error('Gagal membuat pembayaran - Unknown error');
+        // Check if it's a timeout error
+        else if (error.message?.includes('timeout')) {
+          errorType = 'timeout';
+          errorMessage = 'Waktu habis';
         }
-      } else {
-        toast.error('Gagal membuat pembayaran');
+        // Check for specific payment errors
+        else if (error.message?.includes('insufficient')) {
+          errorType = 'insufficient_funds';
+          errorMessage = 'Saldo tidak mencukupi';
+        }
+        else if (error.message?.includes('validation')) {
+          errorType = 'validation';
+          errorMessage = 'Data tidak valid';
+        }
+        else if (error.message) {
+          errorMessage = error.message;
+        }
       }
+      
+      toast.error(errorMessage);
+      
+      // Redirect to error page with details
+      const errorParams = new URLSearchParams({
+        error_type: errorType,
+        error_message: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+      
+      navigate(`/payment-error?${errorParams.toString()}`);
+      return;
     } finally {
       setLoading(false);
     }
