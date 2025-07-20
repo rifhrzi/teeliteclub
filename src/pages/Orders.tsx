@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/layout/Footer";
 
@@ -104,6 +104,19 @@ const Orders = () => {
     fetchOrders();
   }, [user, navigate]);
 
+  // Add an effect to refresh orders when the page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        console.log('Page became visible, refreshing orders');
+        fetchOrders();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -191,9 +204,20 @@ const Orders = () => {
           Kembali ke Beranda
         </Button>
 
-        <div className="flex items-center gap-3 mb-8">
-          <Package className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Riwayat Pesanan</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Package className="h-6 w-6" />
+            <h1 className="text-2xl font-bold">Riwayat Pesanan</h1>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={fetchOrders}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
         {orders.length === 0 ? (
@@ -207,6 +231,14 @@ const Orders = () => {
               <Button onClick={() => navigate('/shop')}>
                 Mulai Belanja
               </Button>
+              
+              {/* Debug info when no orders */}
+              <div className="mt-4 p-4 bg-gray-100 rounded text-sm text-left">
+                <h3 className="font-semibold mb-2">Debug Info:</h3>
+                <p><strong>User ID:</strong> {user?.id}</p>
+                <p><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</p>
+                <p><strong>Query completed:</strong> Yes</p>
+              </div>
             </CardContent>
           </Card>
         ) : (

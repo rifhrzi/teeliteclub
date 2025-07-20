@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Package, ArrowRight, Home } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertTriangle, Package, ArrowRight, Home, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -107,10 +107,8 @@ const FinishPayment = () => {
           toast.error('Pembayaran gagal atau dibatalkan.');
         }
         
-        // Also verify with backend in background
-        setTimeout(() => {
-          verifyWithBackend();
-        }, 1000);
+        // Also verify with backend immediately to update order status
+        await verifyWithBackend();
         
         setLoading(false);
         return;
@@ -438,34 +436,41 @@ const FinishPayment = () => {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-4">
+                  <div className="space-y-3">
                     {isSuccess && (
                       <>
-                        <Button onClick={() => navigate('/orders')} className="flex-1">
-                          <Package className="w-4 h-4 mr-2" />
-                          Lihat Pesanan Saya
-                        </Button>
-                        <Button variant="outline" onClick={() => navigate('/shop')} className="flex-1">
-                          Belanja Lagi
-                          <ArrowRight className="w-4 h-4 ml-2" />
+                        <div className="flex gap-4">
+                          <Button onClick={() => navigate('/orders')} className="flex-1">
+                            <Package className="w-4 h-4 mr-2" />
+                            Lihat Pesanan Saya
+                          </Button>
+                          <Button variant="outline" onClick={() => navigate('/shop')} className="flex-1">
+                            Belanja Lagi
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </div>
+                        <Button variant="outline" onClick={() => checkPaymentStatus()} className="w-full" size="sm">
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Refresh Status Order
                         </Button>
                       </>
                     )}
                     
                     {isPending && (
-                      <>
+                      <div className="flex gap-4">
                         <Button onClick={() => navigate('/orders')} className="flex-1">
                           <Package className="w-4 h-4 mr-2" />
                           Pantau Status Pesanan
                         </Button>
                         <Button variant="outline" onClick={() => checkPaymentStatus()} className="flex-1">
+                          <RefreshCw className="w-4 h-4 mr-2" />
                           Refresh Status
                         </Button>
-                      </>
+                      </div>
                     )}
                     
                     {isFailed && (
-                      <>
+                      <div className="flex gap-4">
                         <Button onClick={() => navigate('/cart')} className="flex-1">
                           Coba Pembayaran Lain
                         </Button>
@@ -473,7 +478,7 @@ const FinishPayment = () => {
                           <Home className="w-4 h-4 mr-2" />
                           Kembali ke Beranda
                         </Button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
