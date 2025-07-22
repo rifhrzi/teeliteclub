@@ -20,6 +20,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, nama?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
@@ -40,6 +41,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Check if this is a new Google OAuth user
+          if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
+            await handleGoogleSignIn(session.user);
+          }
+          
           // Defer profile loading
           setTimeout(() => {
             loadProfile(session.user.id);
@@ -83,6 +89,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(data);
     } catch (error) {
       logger.error('Unexpected error loading profile', { userId, error });
+    }
+  };
+
+  const handleGoogleSignIn = async (user: User) => {
+    try {
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        // Create profile for new Google user
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: user.id,
+            email: user.email,
+            nama: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
+            role: 'user'
+          }]);
+
+        if (profileError) {
+          logger.error('Failed to create Google user profile', { userId: user.id, error: profileError.message });
+        } else {
+          logger.info('Google user profile created successfully', { userId: user.id });
+        }
+      }
+    } catch (error) {
+      logger.error('Error handling Google sign-in', { userId: user.id, error });
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (error) return { error };
+
+      return { error: null };
+    } catch (error) {
+      logger.error('Google sign-in failed', error);
+      return { error };
     }
   };
 
@@ -184,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signUp,
       signIn,
+      signInWithGoogle,
       signOut,
       updateProfile
     }}>

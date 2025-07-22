@@ -108,6 +108,12 @@ const Orders = () => {
     window.open(paymentUrl, '_blank', 'noopener,noreferrer');
     
     toast.success('Halaman pembayaran dibuka di tab baru');
+    
+    // Refresh orders after a short delay to check for payment updates
+    setTimeout(() => {
+      console.log('Auto-refreshing orders after payment continuation');
+      fetchOrders();
+    }, 2000);
   };
 
   useEffect(() => {

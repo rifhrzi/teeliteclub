@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,14 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/layout/Footer";
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, getCartTotal, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nama_pembeli: "",
@@ -27,6 +27,43 @@ const Checkout = () => {
     payment_method: "transfer",
     shipping_method: "regular"
   });
+
+  // Auto-populate form with user data when available
+  useEffect(() => {
+    if (user && profile) {
+      setFormData(prevData => ({
+        ...prevData,
+        nama_pembeli: profile.nama || "",
+        email_pembeli: user.email || "",
+        telepon_pembeli: profile.telepon || "",
+        shipping_address: profile.alamat || "",
+      }));
+    } else if (user && !profile) {
+      // If we have user but no profile yet, at least populate email
+      setFormData(prevData => ({
+        ...prevData,
+        email_pembeli: user.email || "",
+      }));
+    }
+  }, [user, profile]);
+
+  // Helper function to check if a field is auto-filled from profile
+  const isAutoFilled = (fieldName: string) => {
+    if (!user && !profile) return false;
+    
+    switch (fieldName) {
+      case 'nama_pembeli':
+        return !!(profile?.nama && formData.nama_pembeli === profile.nama);
+      case 'email_pembeli':
+        return !!(user?.email && formData.email_pembeli === user.email);
+      case 'telepon_pembeli':
+        return !!(profile?.telepon && formData.telepon_pembeli === profile.telepon);
+      case 'shipping_address':
+        return !!(profile?.alamat && formData.shipping_address === profile.alamat);
+      default:
+        return false;
+    }
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -231,48 +268,95 @@ const Checkout = () => {
               <CardTitle>Informasi Pengiriman</CardTitle>
             </CardHeader>
             <CardContent>
+              {user && (profile?.nama || profile?.telepon || profile?.alamat) && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm text-green-700">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="font-medium">Informasi Anda telah diisi otomatis dari profil</span>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">
+                    Anda dapat mengedit informasi di bawah jika diperlukan
+                  </p>
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="nama_pembeli">Nama Lengkap</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="nama_pembeli">Nama Lengkap</Label>
+                    {isAutoFilled('nama_pembeli') && (
+                      <div className="flex items-center gap-1 text-xs text-green-600">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Diisi otomatis</span>
+                      </div>
+                    )}
+                  </div>
                   <Input
                     id="nama_pembeli"
                     name="nama_pembeli"
                     value={formData.nama_pembeli}
                     onChange={handleInputChange}
+                    className={isAutoFilled('nama_pembeli') ? "border-green-200 bg-green-50" : ""}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email_pembeli">Email</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="email_pembeli">Email</Label>
+                    {isAutoFilled('email_pembeli') && (
+                      <div className="flex items-center gap-1 text-xs text-green-600">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Diisi otomatis</span>
+                      </div>
+                    )}
+                  </div>
                   <Input
                     id="email_pembeli"
                     name="email_pembeli"
                     type="email"
                     value={formData.email_pembeli}
                     onChange={handleInputChange}
+                    className={isAutoFilled('email_pembeli') ? "border-green-200 bg-green-50" : ""}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="telepon_pembeli">Nomor Telepon</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="telepon_pembeli">Nomor Telepon</Label>
+                    {isAutoFilled('telepon_pembeli') && (
+                      <div className="flex items-center gap-1 text-xs text-green-600">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Diisi otomatis</span>
+                      </div>
+                    )}
+                  </div>
                   <Input
                     id="telepon_pembeli"
                     name="telepon_pembeli"
                     value={formData.telepon_pembeli}
                     onChange={handleInputChange}
+                    className={isAutoFilled('telepon_pembeli') ? "border-green-200 bg-green-50" : ""}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="shipping_address">Alamat Pengiriman</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="shipping_address">Alamat Pengiriman</Label>
+                    {isAutoFilled('shipping_address') && (
+                      <div className="flex items-center gap-1 text-xs text-green-600">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Diisi otomatis</span>
+                      </div>
+                    )}
+                  </div>
                   <Textarea
                     id="shipping_address"
                     name="shipping_address"
                     value={formData.shipping_address}
                     onChange={handleInputChange}
+                    className={isAutoFilled('shipping_address') ? "border-green-200 bg-green-50" : ""}
                     rows={3}
                     required
                   />
