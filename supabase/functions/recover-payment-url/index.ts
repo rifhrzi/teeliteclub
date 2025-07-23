@@ -81,10 +81,9 @@ serve(async (req) => {
     }
 
     // Create new Midtrans payment for legacy order
-    const isProduction = Deno.env.get('VITE_APP_ENV') === 'production';
-    const serverKey = isProduction 
-      ? Deno.env.get('MIDTRANS_SERVER_KEY')
-      : Deno.env.get('MIDTRANS_SERVER_KEY_SANDBOX');
+    const environment = Deno.env.get('MIDTRANS_ENVIRONMENT') || 'sandbox';
+    const isProduction = environment === 'production';
+    const serverKey = Deno.env.get('MIDTRANS_SERVER_KEY');
 
     if (!serverKey) {
       throw new Error('Midtrans server key not configured');
@@ -106,9 +105,9 @@ serve(async (req) => {
         phone: order.telepon_pembeli || ''
       },
       callbacks: {
-        finish: `${Deno.env.get('VITE_APP_URL')}/finish-payment?order_id=${order.order_number}&transaction_status={transaction_status}&status_code={status_code}`,
-        unfinish: `${Deno.env.get('VITE_APP_URL')}/payment-error?order_id=${order.order_number}&transaction_status=cancel&error_type=cancelled`,
-        error: `${Deno.env.get('VITE_APP_URL')}/payment-error?order_id=${order.order_number}&transaction_status=failure&error_type=system&error_code={status_code}`
+        finish: `${Deno.env.get('ALLOWED_ORIGIN')}/finish-payment?order_id=${order.order_number}&transaction_status={transaction_status}&status_code={status_code}`,
+        unfinish: `${Deno.env.get('ALLOWED_ORIGIN')}/payment-error?order_id=${order.order_number}&transaction_status=cancel&error_type=cancelled`,
+        error: `${Deno.env.get('ALLOWED_ORIGIN')}/payment-error?order_id=${order.order_number}&transaction_status=failure&error_type=system&error_code={status_code}`
       }
     };
 
