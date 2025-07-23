@@ -181,7 +181,7 @@ const Orders = () => {
 
       console.log('Fetching orders for user ID:', user.id);
 
-      // OPTIMIZED: Single query with relationships to avoid N+1 problem
+      // OPTIMIZED: Single query with relationships (fixed duplicate constraints)
       console.log('Orders fetchOrders - Using optimized single query...');
 
       const { data: ordersData, error: ordersError } = await supabase
@@ -192,14 +192,14 @@ const Orders = () => {
           nama_pembeli, email_pembeli, telepon_pembeli, shipping_address,
           order_items (
             id, jumlah, harga, ukuran,
-            product:products (
+            products (
               id, name, image_url
             )
           )
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50); // Add pagination limit
+        .limit(50);
 
       if (ordersError) {
         console.error('Orders fetchOrders - Supabase error:', ordersError);
@@ -213,9 +213,17 @@ const Orders = () => {
         return;
       }
 
-      console.log(`Orders fetchOrders - Successfully loaded ${ordersData.length} orders with items in single query`);
-      setOrders(ordersData);
+      // Transform the data to match expected structure
+      const transformedOrders = ordersData.map(order => ({
+        ...order,
+        order_items: order.order_items?.map(item => ({
+          ...item,
+          product: item.products
+        })) || []
+      }));
 
+      console.log(`Orders fetchOrders - Successfully loaded ${transformedOrders.length} orders with items in single query`);
+      setOrders(transformedOrders);
 
     } catch (error) {
       console.error('Error fetching orders:', error);
