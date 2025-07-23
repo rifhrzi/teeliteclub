@@ -153,8 +153,39 @@ const Account = () => {
     }
   };
 
-  const handleContinuePayment = (paymentUrl: string, orderNumber: string) => {
+  const handleContinuePayment = async (paymentUrl: string | null, orderNumber: string, orderId: string) => {
     if (!paymentUrl) {
+      // Try to recover payment URL for legacy orders
+      console.log('Payment URL missing, attempting recovery for order:', orderId);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('recover-payment-url', {
+          body: { order_id: orderId }
+        });
+
+        if (error) {
+          console.error('Failed to recover payment URL:', error);
+          toast({
+            title: "Error",
+            description: "Tidak dapat memulihkan link pembayaran",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (data?.payment_url) {
+          console.log('Payment URL recovered:', data.payment_url);
+          // Open the recovered payment URL
+          window.open(data.payment_url, '_blank', 'noopener,noreferrer');
+          sonnerToast.success('Link pembayaran dipulihkan dan dibuka di tab baru');
+          // Refresh orders to update the UI
+          loadOrders();
+          return;
+        }
+      } catch (recoveryError) {
+        console.error('Payment URL recovery failed:', recoveryError);
+      }
+
       toast({
         title: "Error",
         description: "Link pembayaran tidak tersedia",
@@ -162,13 +193,13 @@ const Account = () => {
       });
       return;
     }
-    
+
     console.log('Continuing payment for order:', orderNumber);
     console.log('Payment URL:', paymentUrl);
-    
+
     // Open payment URL in new tab
     window.open(paymentUrl, '_blank', 'noopener,noreferrer');
-    
+
     sonnerToast.success('Halaman pembayaran dibuka di tab baru');
   };
 
@@ -369,14 +400,15 @@ const Account = () => {
                               <p className="font-semibold text-lg">{formatCurrency(order.total)}</p>
                               <div className="flex flex-col gap-2">
                                 {/* Continue Payment Button for pending orders */}
-                                {order.status === 'pending' && order.payment_url && (
+                                {order.status === 'pending' && (
                                   <Button
                                     size="sm"
-                                    onClick={() => handleContinuePayment(order.payment_url!, order.order_number)}
+                                    onClick={() => handleContinuePayment(order.payment_url || null, order.order_number, order.id)}
                                     className="flex items-center gap-2"
+                                    variant={order.payment_url ? "default" : "outline"}
                                   >
                                     <ExternalLink className="h-4 w-4" />
-                                    Lanjutkan Pembayaran
+                                    {order.payment_url ? 'Lanjutkan Pembayaran' : 'Pulihkan Pembayaran'}
                                   </Button>
                                 )}
                                 <Button

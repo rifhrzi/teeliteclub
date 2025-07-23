@@ -114,8 +114,39 @@ const OrderDetail = () => {
     return order?.order_items?.reduce((total, item) => total + (item.harga * item.jumlah), 0) || 0;
   };
 
-  const handleContinuePayment = () => {
+  const handleContinuePayment = async () => {
     if (!order?.payment_url) {
+      // Try to recover payment URL for legacy orders
+      console.log('Payment URL missing, attempting recovery for order:', order.id);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('recover-payment-url', {
+          body: { order_id: order.id }
+        });
+
+        if (error) {
+          console.error('Failed to recover payment URL:', error);
+          toast({
+            title: "Error",
+            description: "Tidak dapat memulihkan link pembayaran. Silakan buat pesanan baru.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (data?.payment_url) {
+          console.log('Payment URL recovered:', data.payment_url);
+          // Update local order state
+          setOrder(prev => prev ? { ...prev, payment_url: data.payment_url } : null);
+          // Open the recovered payment URL
+          window.open(data.payment_url, '_blank', 'noopener,noreferrer');
+          sonnerToast.success('Link pembayaran dipulihkan dan dibuka di tab baru');
+          return;
+        }
+      } catch (recoveryError) {
+        console.error('Payment URL recovery failed:', recoveryError);
+      }
+
       toast({
         title: "Error",
         description: "Link pembayaran tidak tersedia",
@@ -123,13 +154,13 @@ const OrderDetail = () => {
       });
       return;
     }
-    
+
     console.log('Continuing payment for order:', order.order_number);
     console.log('Payment URL:', order.payment_url);
-    
+
     // Open payment URL in new tab
     window.open(order.payment_url, '_blank', 'noopener,noreferrer');
-    
+
     sonnerToast.success('Halaman pembayaran dibuka di tab baru');
   };
 
@@ -433,10 +464,18 @@ const OrderDetail = () => {
                           Lanjutkan Pembayaran
                         </Button>
                       ) : (
-                        <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                        <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 space-y-3">
                           <p className="text-sm text-orange-700 dark:text-orange-300">
-                            Link pembayaran tidak tersedia. Silakan hubungi customer service.
+                            Link pembayaran tidak tersedia untuk pesanan lama.
                           </p>
+                          <Button
+                            onClick={handleContinuePayment}
+                            className="w-full flex items-center gap-2"
+                            variant="outline"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Pulihkan Link Pembayaran
+                          </Button>
                         </div>
                       )}
                     </div>
