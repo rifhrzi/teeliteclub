@@ -184,7 +184,7 @@ enabled = true
 inspector_port = 8083
 
 [functions.create-midtrans-payment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.midtrans-webhook]
 verify_jwt = false

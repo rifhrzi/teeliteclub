@@ -172,7 +172,7 @@ const Orders = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      
+
       if (!user?.id) {
         console.error('No user ID available for fetching orders');
         toast.error('User not authenticated');
@@ -181,140 +181,42 @@ const Orders = () => {
 
       console.log('Fetching orders for user ID:', user.id);
 
-      // First, try a simple query to test connectivity
-      const { data: testData, error: testError } = await supabase
-        .from('orders')
-        .select('id, order_number, user_id')
-        .limit(5);
+      // OPTIMIZED: Single query with relationships to avoid N+1 problem
+      console.log('Orders fetchOrders - Using optimized single query...');
 
-      if (testError) {
-        console.error('Test query failed:', testError);
-      } else {
-        console.log('Test query successful, total orders in DB:', testData?.length);
-        console.log('Sample orders:', testData);
-      }
-
-      // Now fetch user's orders - using robust approach to avoid relationship errors
-      console.log('Fetching user orders...');
-      
-      // First, get orders without relationships
-      // Try to fetch with payment_url, fallback if field doesn't exist
-      console.log('Orders fetchOrders - Attempting full query with all fields...');
-      
-      const fullResult = await supabase
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          id, order_number, total, status, created_at, updated_at,
+          payment_url, payment_method, shipping_method, tracking_number,
+          nama_pembeli, email_pembeli, telepon_pembeli, shipping_address,
+          order_items (
+            id, jumlah, harga, ukuran,
+            product:products (
+              id, name, image_url
+            )
+          )
+        `)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      let ordersData, ordersError;
-      
-      // Check if the error is due to missing payment_url column
-      if (fullResult.error && fullResult.error.code === '42703' && fullResult.error.message.includes('payment_url')) {
-        console.warn("Orders fetchOrders - payment_url column doesn't exist, using fallback query");
-        const fallbackResult = await supabase
-          .from('orders')
-          .select('id, order_number, total, status, created_at, nama_pembeli, email_pembeli, telepon_pembeli, shipping_address, payment_method, shipping_method, tracking_number, updated_at, user_id')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-        ordersData = fallbackResult.data;
-        ordersError = fallbackResult.error;
-        console.log('Orders fetchOrders - Fallback query result:', { 
-          dataLength: ordersData?.length, 
-          error: ordersError?.message 
-        });
-      } else {
-        ordersData = fullResult.data;
-        ordersError = fullResult.error;
-        console.log('Orders fetchOrders - Full query result:', { 
-          dataLength: ordersData?.length, 
-          error: ordersError?.message 
-        });
-      }
+        .order('created_at', { ascending: false })
+        .limit(50); // Add pagination limit
 
       if (ordersError) {
-        console.error('Orders fetch error:', ordersError);
-        throw ordersError;
+        console.error('Orders fetchOrders - Supabase error:', ordersError);
+        toast.error('Failed to load orders');
+        return;
       }
 
-      console.log('Fetched orders:', ordersData?.length || 0, 'orders found');
-
       if (!ordersData || ordersData.length === 0) {
+        console.log('Orders fetchOrders - No orders found for user');
         setOrders([]);
         return;
       }
 
-      // Now fetch order items for each order
-      const ordersWithItems = await Promise.all(
-        ordersData.map(async (order) => {
-          try {
-            // Try relationship query first
-            const { data: relationshipData, error: relationshipError } = await supabase
-              .from('order_items')
-              .select(`
-                id,
-                product_id,
-                jumlah,
-                harga,
-                ukuran,
-                product:products!order_items_product_id_fkey (
-                  name,
-                  image_url
-                )
-              `)
-              .eq('order_id', order.id);
+      console.log(`Orders fetchOrders - Successfully loaded ${ordersData.length} orders with items in single query`);
+      setOrders(ordersData);
 
-            if (relationshipError) {
-              console.warn(`Relationship query failed for order ${order.id}, using fallback:`, relationshipError);
-              
-              // Fallback: Load order items and products separately
-              const { data: simpleItemsData, error: simpleItemsError } = await supabase
-                .from('order_items')
-                .select('id, product_id, jumlah, harga, ukuran')
-                .eq('order_id', order.id);
 
-              if (simpleItemsError) {
-                console.error(`Error fetching order items for order ${order.id}:`, simpleItemsError);
-                return { ...order, order_items: [] };
-              }
-
-              // Get unique product IDs
-              const productIds = [...new Set(simpleItemsData?.map(item => item.product_id))] as string[];
-              
-              if (productIds.length > 0) {
-                // Load products separately
-                const { data: productsData, error: productsError } = await supabase
-                  .from('products')
-                  .select('id, name, image_url')
-                  .in('id', productIds);
-
-                if (productsError) {
-                  console.error(`Error fetching products for order ${order.id}:`, productsError);
-                  return { ...order, order_items: simpleItemsData || [] };
-                }
-
-                // Combine the data manually
-                const itemsWithProducts = simpleItemsData?.map(item => ({
-                  ...item,
-                  product: productsData?.find(product => product.id === item.product_id)
-                }));
-
-                return { ...order, order_items: itemsWithProducts || [] };
-              } else {
-                return { ...order, order_items: simpleItemsData || [] };
-              }
-            }
-
-            return { ...order, order_items: relationshipData || [] };
-          } catch (itemError) {
-            console.error(`Error loading items for order ${order.id}:`, itemError);
-            return { ...order, order_items: [] };
-          }
-        })
-      );
-
-      console.log('Orders with items loaded:', ordersWithItems);
-      setOrders(ordersWithItems);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Gagal memuat riwayat pesanan');

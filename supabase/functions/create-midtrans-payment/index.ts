@@ -52,14 +52,20 @@ serve(async (req) => {
 
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    console.log('Auth header format:', authHeader ? 'Bearer ' + authHeader.substring(7, 20) + '...' : 'none');
+    
     if (!authHeader) {
       throw new Error('Authorization header missing');
     }
     
     const token = authHeader.replace('Bearer ', '');
+    console.log('Token length:', token.length);
+    
     const { data, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError) {
       console.error('Auth error:', authError);
+      console.error('Auth error code:', authError.status);
       throw new Error(`Authentication failed: ${authError.message}`);
     }
     

@@ -104,36 +104,29 @@ const ProductManagement = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
+
+      // OPTIMIZED: Load products with sizes in single query to avoid N+1 problem
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(`
+          *,
+          product_sizes (
+            ukuran, stok
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Calculate total stock for each product from product_sizes table
-      const productsWithStock = await Promise.all(
-        (data || []).map(async (product) => {
-          const { data: sizesData, error: sizesError } = await supabase
-            .from("product_sizes")
-            .select("stok")
-            .eq("product_id", product.id);
+      // Calculate total stock from the loaded sizes data
+      const productsWithStock = (data || []).map((product) => {
+        const total_stock = product.product_sizes?.reduce(
+          (total: number, size: any) => total + (size.stok || 0),
+          0
+        ) || 0;
 
-          if (sizesError) {
-            logger.error(
-              "Failed to load product sizes for product:",
-              product.id,
-              sizesError
-            );
-            return { ...product, total_stock: 0 };
-          }
-
-          const total_stock =
-            sizesData?.reduce((total, size) => total + (size.stok || 0), 0) ||
-            0;
-          return { ...product, total_stock };
-        })
-      );
+        return { ...product, total_stock };
+      });
 
       setProducts(productsWithStock);
     } catch (error) {

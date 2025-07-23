@@ -87,42 +87,25 @@ const Account = () => {
       
       console.log('Account fetchOrders - Basic connectivity OK');
 
-      // Try to fetch orders with payment_url, fallback if field doesn't exist
-      let data, error;
-      console.log('Account fetchOrders - Attempting full query with payment_url...');
-      
-      const fullResult = await supabase
+      // OPTIMIZED: Single query with relationships to avoid N+1 problem
+      console.log('Account fetchOrders - Using optimized single query...');
+
+      const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, total, status, created_at, payment_url")
+        .select(`
+          id, order_number, total, status, created_at, updated_at,
+          payment_url, payment_method, shipping_method, tracking_number,
+          nama_pembeli, email_pembeli, telepon_pembeli, shipping_address,
+          order_items (
+            id, jumlah, harga, ukuran,
+            product:products (
+              id, name, image_url
+            )
+          )
+        `)
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      
-      // Check if the error is due to missing payment_url column
-      if (fullResult.error && fullResult.error.code === '42703' && fullResult.error.message.includes('payment_url')) {
-        console.warn("Account fetchOrders - payment_url column doesn't exist, using fallback query");
-        const fallbackResult = await supabase
-          .from("orders")
-          .select("id, order_number, total, status, created_at")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-        data = fallbackResult.data;
-        error = fallbackResult.error;
-        console.log('Account fetchOrders - Fallback query result:', { 
-          dataLength: data?.length, 
-          error: error?.message,
-          errorCode: error?.code,
-          errorDetails: error?.details 
-        });
-      } else {
-        data = fullResult.data;
-        error = fullResult.error;
-        console.log('Account fetchOrders - Full query result:', { 
-          dataLength: data?.length, 
-          error: error?.message,
-          errorCode: error?.code,
-          errorDetails: error?.details 
-        });
-      }
+        .order("created_at", { ascending: false })
+        .limit(20); // Add pagination limit
 
       if (error) {
         console.error("Account fetchOrders - Supabase error:", {

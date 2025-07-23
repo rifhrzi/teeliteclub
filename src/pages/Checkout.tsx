@@ -94,12 +94,22 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      // Check authentication before proceeding
-      const { data: session } = await supabase.auth.getSession();
+      // Check and refresh authentication before proceeding
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
       console.log('User session:', session.session?.user?.email || 'NOT LOGGED IN');
       
-      if (!session.session?.user) {
+      if (sessionError || !session.session?.user) {
+        console.error('Session error:', sessionError);
         toast.error('Silakan login terlebih dahulu');
+        navigate('/auth');
+        return;
+      }
+      
+      // Refresh session to ensure valid token
+      const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Token refresh error:', refreshError);
+        toast.error('Sesi berakhir, silakan login kembali');
         navigate('/auth');
         return;
       }
@@ -140,6 +150,17 @@ const Checkout = () => {
       // Create Midtrans payment
       console.log('Calling Midtrans payment function...');
       
+      // Get current session to ensure we have a valid token
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (!currentSession.session?.access_token) {
+        toast.error('Token tidak valid, silakan login kembali');
+        navigate('/auth');
+        return;
+      }
+      
+      console.log('Session token available:', !!currentSession.session.access_token);
+      console.log('Token length:', currentSession.session.access_token.length);
+      
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
         'create-midtrans-payment',
         {
@@ -154,6 +175,14 @@ const Checkout = () => {
       
       if (paymentError) {
         console.error('Payment error details:', paymentError);
+        
+        // Handle authentication errors specifically
+        if (paymentError.message && paymentError.message.includes('401')) {
+          console.error('Authentication error - token may be expired');
+          toast.error('Sesi berakhir, silakan login kembali');
+          navigate('/auth');
+          return;
+        }
         
         // Try to get the actual error response from the Edge Function
         if (paymentError && typeof paymentError === 'object' && 'context' in paymentError) {

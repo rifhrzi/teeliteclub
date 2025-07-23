@@ -40,12 +40,19 @@ const Shop = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const {
-        data,
-        error
-      } = await supabase.from("products").select("*").eq("is_active", true).order("created_at", {
-        ascending: false
-      });
+
+      // OPTIMIZED: Load products with sizes in single query
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          id, name, price, image_url, category, description, is_active, created_at,
+          product_sizes (
+            ukuran, stok
+          )
+        `)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       setProducts(data || []);
     } catch (error) {
