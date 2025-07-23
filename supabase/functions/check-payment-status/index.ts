@@ -116,9 +116,9 @@ serve(async (req) => {
     if (paymentStatus.transaction_status === 'settlement' || paymentStatus.transaction_status === 'capture') {
       newOrderStatus = 'paid';
     } else if (paymentStatus.transaction_status === 'pending') {
-      newOrderStatus = 'pending_payment';
+      newOrderStatus = 'pending'; // Keep as 'pending' so Continue Payment button shows
     } else if (['deny', 'cancel', 'expire', 'failure'].includes(paymentStatus.transaction_status)) {
-      newOrderStatus = 'payment_failed';
+      newOrderStatus = 'cancelled'; // Use 'cancelled' instead of 'payment_failed' to match DB constraint
     }
 
     // Update order status if changed

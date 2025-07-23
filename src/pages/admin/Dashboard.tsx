@@ -128,8 +128,9 @@ const AdminDashboard = () => {
       shipped: { label: 'Dikirim', variant: 'default' as const },
       delivered: { label: 'Selesai', variant: 'default' as const },
       cancelled: { label: 'Dibatalkan', variant: 'destructive' as const },
+      failed: { label: 'Gagal', variant: 'destructive' as const },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };

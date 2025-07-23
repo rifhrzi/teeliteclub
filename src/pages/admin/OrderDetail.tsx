@@ -68,7 +68,8 @@ const OrderDetail = () => {
     { value: "processing", label: "Processing" },
     { value: "shipped", label: "Shipped" },
     { value: "delivered", label: "Delivered" },
-    { value: "cancelled", label: "Cancelled" }
+    { value: "cancelled", label: "Cancelled" },
+    { value: "failed", label: "Failed" }
   ];
 
   const getStatusIcon = (status: string) => {
@@ -78,6 +79,7 @@ const OrderDetail = () => {
       case "shipped": return <Truck className="h-4 w-4" />;
       case "delivered": return <CheckCircle className="h-4 w-4" />;
       case "cancelled": return <AlertCircle className="h-4 w-4" />;
+      case "failed": return <AlertCircle className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
@@ -89,6 +91,7 @@ const OrderDetail = () => {
       case "shipped": return "bg-purple-100 text-purple-800";
       case "delivered": return "bg-green-100 text-green-800";
       case "cancelled": return "bg-red-100 text-red-800";
+      case "failed": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
     }
   };

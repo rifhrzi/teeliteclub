@@ -80,6 +80,8 @@ const Orders = () => {
         return <Badge variant="default">Selesai</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Dibatalkan</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Gagal</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }

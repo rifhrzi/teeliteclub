@@ -89,6 +89,8 @@ const OrderDetail = () => {
         return <Badge variant="default" className="flex items-center gap-2"><CheckCircle className="h-3 w-3" />Selesai</Badge>;
       case 'cancelled':
         return <Badge variant="destructive" className="flex items-center gap-2"><AlertCircle className="h-3 w-3" />Dibatalkan</Badge>;
+      case 'failed':
+        return <Badge variant="destructive" className="flex items-center gap-2"><AlertCircle className="h-3 w-3" />Gagal</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
