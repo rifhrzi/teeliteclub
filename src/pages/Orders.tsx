@@ -110,6 +110,12 @@ const Orders = () => {
     window.open(paymentUrl, '_blank', 'noopener,noreferrer');
     
     toast.success('Halaman pembayaran dibuka di tab baru');
+    
+    // Refresh orders after a short delay to check for payment updates
+    setTimeout(() => {
+      console.log('Auto-refreshing orders after payment continuation');
+      fetchOrders();
+    }, 2000);
   };
 
   useEffect(() => {
@@ -165,11 +171,39 @@ const Orders = () => {
       console.log('Fetching user orders...');
       
       // First, get orders without relationships
-      const { data: ordersData, error: ordersError } = await supabase
+      // Try to fetch with payment_url, fallback if field doesn't exist
+      console.log('Orders fetchOrders - Attempting full query with all fields...');
+      
+      const fullResult = await supabase
         .from('orders')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      
+      let ordersData, ordersError;
+      
+      // Check if the error is due to missing payment_url column
+      if (fullResult.error && fullResult.error.code === '42703' && fullResult.error.message.includes('payment_url')) {
+        console.warn("Orders fetchOrders - payment_url column doesn't exist, using fallback query");
+        const fallbackResult = await supabase
+          .from('orders')
+          .select('id, order_number, total, status, created_at, nama_pembeli, email_pembeli, telepon_pembeli, shipping_address, payment_method, shipping_method, tracking_number, updated_at, user_id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        ordersData = fallbackResult.data;
+        ordersError = fallbackResult.error;
+        console.log('Orders fetchOrders - Fallback query result:', { 
+          dataLength: ordersData?.length, 
+          error: ordersError?.message 
+        });
+      } else {
+        ordersData = fullResult.data;
+        ordersError = fullResult.error;
+        console.log('Orders fetchOrders - Full query result:', { 
+          dataLength: ordersData?.length, 
+          error: ordersError?.message 
+        });
+      }
 
       if (ordersError) {
         console.error('Orders fetch error:', ordersError);
