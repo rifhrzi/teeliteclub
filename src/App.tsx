@@ -12,6 +12,9 @@ import { AdminRoute } from "@/components/admin/AdminRoute";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
+import TestConnection from "./pages/TestConnection";
+import DebugProducts from "./pages/DebugProducts";
+import SimpleTest from "./pages/SimpleTest";
 import NotFound from "./pages/NotFound";
 
 // Auth and user pages (lazy loaded)
@@ -70,6 +73,9 @@ const App = () => (
                 <Route path="/admin/orders/:id" element={<AdminRoute><AdminOrderDetail /></AdminRoute>} />
                 <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
                 <Route path="/admin/reports" element={<AdminRoute><Reports /></AdminRoute>} />
+                <Route path="/test-connection" element={<TestConnection />} />
+                <Route path="/debug-products" element={<DebugProducts />} />
+                <Route path="/simple-test" element={<SimpleTest />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

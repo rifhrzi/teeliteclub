@@ -40,9 +40,11 @@ const Shop = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Starting to fetch products...');
 
-      // OPTIMIZED: Load products with sizes in single query
-      const { data, error } = await supabase
+      // Try the relationship query first
+      console.log('📡 Attempting relationship query...');
+      const { data: relationshipData, error: relationshipError } = await supabase
         .from("products")
         .select(`
           id, name, price, image_url, category, description, is_active, created_at,
@@ -53,11 +55,62 @@ const Shop = () => {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setProducts(data || []);
+      if (!relationshipError && relationshipData) {
+        console.log('✅ Relationship query successful:', relationshipData.length, 'products');
+        setProducts(relationshipData);
+        return;
+      }
+
+      console.warn('⚠️ Relationship query failed, trying fallback:', relationshipError);
+
+      // Fallback: Try simple query + separate sizes query
+      const { data: simpleData, error: simpleError } = await supabase
+        .from("products")
+        .select("id, name, price, image_url, category, description, is_active, created_at")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+
+      if (simpleError) {
+        console.error("❌ Simple products query failed:", simpleError);
+        throw simpleError;
+      }
+
+      console.log('✅ Simple products query successful:', simpleData?.length, 'products');
+
+      // Get sizes separately
+      if (simpleData && simpleData.length > 0) {
+        const productIds = simpleData.map(p => p.id);
+        const { data: sizesData, error: sizesError } = await supabase
+          .from("product_sizes")
+          .select("product_id, ukuran, stok")
+          .in("product_id", productIds);
+
+        if (!sizesError && sizesData) {
+          console.log('✅ Product sizes query successful:', sizesData.length, 'sizes');
+
+          // Combine products with their sizes
+          const productsWithSizes = simpleData.map(product => ({
+            ...product,
+            product_sizes: sizesData.filter(size => size.product_id === product.id) || []
+          }));
+
+          setProducts(productsWithSizes);
+        } else {
+          console.warn('⚠️ Product sizes query failed:', sizesError);
+          // Use products without sizes
+          const productsWithEmptySizes = simpleData.map(product => ({
+            ...product,
+            product_sizes: []
+          }));
+          setProducts(productsWithEmptySizes);
+        }
+      } else {
+        setProducts([]);
+      }
+
     } catch (error) {
-      console.error("Error fetching products:", error);
-      toast.error("Failed to load products");
+      console.error("❌ Error fetching products:", error);
+      toast.error("Failed to load products: " + (error as Error).message);
     } finally {
       setLoading(false);
     }
