@@ -13,6 +13,10 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== CHECK PAYMENT STATUS FUNCTION START ===');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
     const { order_id, transaction_status, status_code } = await req.json();
 
     console.log('Payment status check request:', { order_id, transaction_status, status_code });
@@ -22,15 +26,27 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    
-    if (!user) {
-      throw new Error('User not authenticated');
+    // Get user from JWT (since verify_jwt = false, we handle auth manually)
+    const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+
+    if (!authHeader) {
+      throw new Error('Authorization header missing');
     }
+
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token extracted, length:', token.length);
+
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
+    console.log('Auth result:', { hasUser: !!data.user, error: authError?.message });
+
+    if (authError || !data.user) {
+      console.error('Authentication error:', authError);
+      throw new Error(`User not authenticated: ${authError?.message || 'No user data'}`);
+    }
+
+    const user = data.user;
+    console.log('User authenticated:', user.id);
 
     // Create service client for database updates
     const supabaseService = createClient(
@@ -39,16 +55,20 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Get order from database first
-    const { data: order, error: orderError } = await supabaseClient
+    // Get order from database using service client (bypasses RLS)
+    console.log('Querying order:', { order_id, user_id: user.id });
+
+    const { data: order, error: orderError } = await supabaseService
       .from('orders')
       .select('*')
       .eq('order_number', order_id)
       .eq('user_id', user.id)
       .single();
 
+    console.log('Order query result:', { hasOrder: !!order, error: orderError?.message });
+
     if (orderError || !order) {
-      throw new Error('Order not found or access denied');
+      throw new Error(`Order not found or access denied: ${orderError?.message || 'No order data'}`);
     }
 
     console.log('Order found:', order.id, order.status);
@@ -175,8 +195,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error checking payment status:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
+
+    return new Response(JSON.stringify({
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: error instanceof Error ? error.stack : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
