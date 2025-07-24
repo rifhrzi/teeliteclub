@@ -18,9 +18,10 @@ interface Product {
   category: string;
   image_url?: string;
   gambar?: string[];
-  stock_quantity: number;
+  product_sizes?: { ukuran: string; stok: number; product_id?: string; }[];
   ukuran?: string[];
   is_active?: boolean;
+  created_at?: string;
 }
 
 interface ProductSize {
