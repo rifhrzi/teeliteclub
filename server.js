@@ -37,6 +37,7 @@ app.use(helmet({
       connectSrc: [
         "'self'",
         "https://*.supabase.co",
+        "wss://*.supabase.co",
         "https://api.midtrans.com",
         "https://app.sandbox.midtrans.com",
         "https://app.midtrans.com"
