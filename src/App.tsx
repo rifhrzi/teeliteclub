@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/hooks/useCart";
 import { AdminRoute } from "@/components/admin/AdminRoute";
+import { MaintenanceWrapper } from "@/components/MaintenanceWrapper";
 
 // Core pages (loaded immediately)
 import Index from "./pages/Index";
@@ -53,8 +54,9 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+            <MaintenanceWrapper>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/shop" element={<Shop />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
@@ -78,8 +80,9 @@ const App = () => (
                 <Route path="/simple-test" element={<SimpleTest />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+                </Routes>
+              </Suspense>
+            </MaintenanceWrapper>
           </BrowserRouter>
         </TooltipProvider>
       </CartProvider>

@@ -4,8 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MaintenanceCountdown } from "@/components/MaintenanceCountdown";
 const Index = () => {
   const [heroImage, setHeroImage] = useState("/lovable-uploads/a773ac2f-9e06-49da-a3b9-b4425905b493.png");
+  const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
+  
   useEffect(() => {
     loadHeroImage();
   }, []);
@@ -34,11 +37,13 @@ const Index = () => {
         </div>
         <div className="relative z-10 flex items-center justify-center min-h-full">
           <div className="text-center text-dark-blue py-[200px]">
+            <MaintenanceCountdown onMaintenanceCheck={setIsMaintenanceActive} />
             
-            
-            <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-white text-white bg-transparent hover:bg-white hover:text-dark-blue animate-scale-in" asChild>
-              <Link to="/shop">Shop Now</Link>
-            </Button>
+            {!isMaintenanceActive && (
+              <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-white text-white bg-transparent hover:bg-white hover:text-dark-blue animate-scale-in" asChild>
+                <Link to="/shop">Shop Now</Link>
+              </Button>
+            )}
           </div>
         </div>
       </main>

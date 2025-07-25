@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { handleAuthError } from "@/lib/errorHandler";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "@/components/layout/Footer";
 import { toast } from "sonner";
 const Auth = () => {
@@ -18,8 +18,10 @@ const Auth = () => {
     signInWithGoogle,
     user
   } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [defaultTab, setDefaultTab] = useState('signin');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -27,11 +29,21 @@ const Auth = () => {
     confirmPassword: ''
   });
 
+  // Check URL parameters to set default tab
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    if (mode === 'signin' || mode === 'signup') {
+      setDefaultTab(mode);
+    }
+  }, []);
+
   // Redirect if already logged in
-  if (user) {
-    window.location.href = '/';
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -117,7 +129,7 @@ const Auth = () => {
             <p className="text-muted-foreground">Masuk atau daftar untuk melanjutkan</p>
           </div>
 
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Masuk</TabsTrigger>
               <TabsTrigger value="signup">Daftar</TabsTrigger>

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { HeroSettings } from "@/components/admin/HeroSettings";
+import { MaintenanceSettings } from "@/components/admin/MaintenanceSettings";
 import { DashboardSkeleton } from "@/components/loading/PageSkeleton";
 
 interface DashboardStats {
@@ -288,9 +289,10 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Hero Settings */}
-        <div className="grid gap-4">
+        {/* Settings */}
+        <div className="grid gap-4 md:grid-cols-2">
           <HeroSettings />
+          <MaintenanceSettings />
         </div>
       </div>
     </AdminLayout>
