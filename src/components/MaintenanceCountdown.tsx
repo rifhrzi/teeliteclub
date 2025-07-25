@@ -85,20 +85,28 @@ export const MaintenanceCountdown = ({ onMaintenanceCheck }: MaintenanceCountdow
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Add timeout to prevent hanging requests on mobile
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
+      
+      const supabasePromise = supabase
         .from('maintenance_settings')
         .select('*')
         .single();
 
+      const { data, error } = await Promise.race([supabasePromise, timeoutPromise]) as any;
+
       if (error) {
-        logger.error('Failed to load maintenance settings', error);
+        console.warn('Failed to load maintenance settings:', error);
         setSettings(null);
         return;
       }
 
       setSettings(data);
     } catch (error) {
-      logger.error('Failed to load maintenance settings', error);
+      console.warn('Failed to load maintenance settings:', error);
       setSettings(null);
     } finally {
       setLoading(false);
@@ -131,6 +139,7 @@ export const MaintenanceCountdown = ({ onMaintenanceCheck }: MaintenanceCountdow
     return endTime > now;
   };
 
+  // Show nothing if still loading, no settings, or maintenance not active
   if (loading || !settings || !isMaintenanceActive()) {
     return null;
   }

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/hooks/useCart";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { MaintenanceWrapper } from "@/components/MaintenanceWrapper";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Core pages (loaded immediately)
 import Index from "./pages/Index";
@@ -39,24 +40,28 @@ const Reports = lazy(() => import("./pages/admin/Reports"));
 
 // Loading component
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  <div className="flex items-center justify-center min-h-screen bg-white">
+    <div className="text-center space-y-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+      <p className="text-gray-600">Loading Teelitee Club...</p>
+    </div>
   </div>
 );
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <MaintenanceWrapper>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <MaintenanceWrapper>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/shop" element={<Shop />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
@@ -80,14 +85,15 @@ const App = () => (
                 <Route path="/simple-test" element={<SimpleTest />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </MaintenanceWrapper>
-          </BrowserRouter>
-        </TooltipProvider>
-      </CartProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+                  </Routes>
+                </Suspense>
+              </MaintenanceWrapper>
+            </BrowserRouter>
+          </TooltipProvider>
+        </CartProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

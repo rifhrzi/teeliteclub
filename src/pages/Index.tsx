@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MaintenanceCountdown } from "@/components/MaintenanceCountdown";
+import { MobileSafeWrapper } from "@/components/MobileSafeWrapper";
 const Index = () => {
   const [heroImage, setHeroImage] = useState("/lovable-uploads/a773ac2f-9e06-49da-a3b9-b4425905b493.png");
   const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
@@ -37,8 +38,17 @@ const Index = () => {
         </div>
         <div className="relative z-10 flex items-center justify-center min-h-full">
           <div className="text-center text-dark-blue py-[200px]">
-            <MaintenanceCountdown onMaintenanceCheck={setIsMaintenanceActive} />
+            <MobileSafeWrapper 
+              fallback={
+                <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-white text-white bg-transparent hover:bg-white hover:text-dark-blue animate-scale-in" asChild>
+                  <Link to="/shop">Shop Now</Link>
+                </Button>
+              }
+            >
+              <MaintenanceCountdown onMaintenanceCheck={setIsMaintenanceActive} />
+            </MobileSafeWrapper>
             
+            {/* Always show button as fallback if maintenance component fails */}
             {!isMaintenanceActive && (
               <Button variant="outline" size="lg" className="px-12 py-6 text-lg font-medium border-white text-white bg-transparent hover:bg-white hover:text-dark-blue animate-scale-in" asChild>
                 <Link to="/shop">Shop Now</Link>
