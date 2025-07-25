@@ -26,7 +26,7 @@ export const Footer = () => {
           
           {/* Copyright */}
           <p className="text-[hsl(var(--header-footer-foreground))]/70 text-xs">
-            &copy; 2024 TEELITECLUB. All rights reserved.
+            &copy; 2025 TEELITECLUB. All rights reserved.
           </p>
         </div>
       </div>

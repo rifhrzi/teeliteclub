@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { CartProvider } from "@/hooks/useCart";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { MaintenanceWrapper } from "@/components/MaintenanceWrapper";
+import { MaintenanceRoute } from "@/components/MaintenanceRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Core pages (loaded immediately)
@@ -18,6 +19,10 @@ import TestConnection from "./pages/TestConnection";
 import DebugProducts from "./pages/DebugProducts";
 import SimpleTest from "./pages/SimpleTest";
 import NotFound from "./pages/NotFound";
+import { MaintenanceTestPanel } from "@/components/MaintenanceTestPanel";
+import { RouteTestPanel } from "@/components/RouteTestPanel";
+import { MaintenanceDebugPanel } from "@/components/MaintenanceDebugPanel";
+import { DatabaseTestPanel } from "@/components/DatabaseTestPanel";
 
 // Auth and user pages (lazy loaded)
 const Auth = lazy(() => import("./pages/Auth"));
@@ -63,17 +68,17 @@ const App = () => (
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/shop" element={<Shop />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/shop" element={<MaintenanceRoute><Shop /></MaintenanceRoute>} />
+                <Route path="/product/:id" element={<MaintenanceRoute><ProductDetail /></MaintenanceRoute>} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/payment-success" element={<PaymentSuccess />} />
-                <Route path="/finish-payment" element={<FinishPayment />} />
-                <Route path="/payment-error" element={<PaymentError />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/orders/:id" element={<OrderDetail />} />
-                <Route path="/account" element={<Account />} />
+                <Route path="/cart" element={<MaintenanceRoute><Cart /></MaintenanceRoute>} />
+                <Route path="/checkout" element={<MaintenanceRoute><Checkout /></MaintenanceRoute>} />
+                <Route path="/payment-success" element={<MaintenanceRoute><PaymentSuccess /></MaintenanceRoute>} />
+                <Route path="/finish-payment" element={<MaintenanceRoute><FinishPayment /></MaintenanceRoute>} />
+                <Route path="/payment-error" element={<MaintenanceRoute><PaymentError /></MaintenanceRoute>} />
+                <Route path="/orders" element={<MaintenanceRoute><Orders /></MaintenanceRoute>} />
+                <Route path="/orders/:id" element={<MaintenanceRoute><OrderDetail /></MaintenanceRoute>} />
+                <Route path="/account" element={<MaintenanceRoute><Account /></MaintenanceRoute>} />
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="/admin/products" element={<AdminRoute><ProductManagement /></AdminRoute>} />
                 <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
@@ -83,6 +88,10 @@ const App = () => (
                 <Route path="/test-connection" element={<TestConnection />} />
                 <Route path="/debug-products" element={<DebugProducts />} />
                 <Route path="/simple-test" element={<SimpleTest />} />
+                <Route path="/maintenance-test" element={<MaintenanceTestPanel />} />
+                <Route path="/route-test" element={<RouteTestPanel />} />
+                <Route path="/maintenance-debug" element={<MaintenanceDebugPanel />} />
+                <Route path="/database-test" element={<DatabaseTestPanel />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
                   </Routes>

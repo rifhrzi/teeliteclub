@@ -52,6 +52,42 @@ export type Database = {
           },
         ]
       }
+      maintenance_settings: {
+        Row: {
+          id: string
+          is_enabled: boolean
+          maintenance_start: string | null
+          maintenance_end: string | null
+          title: string
+          message: string
+          countdown_message: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          is_enabled?: boolean
+          maintenance_start?: string | null
+          maintenance_end?: string | null
+          title?: string
+          message?: string
+          countdown_message?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          is_enabled?: boolean
+          maintenance_start?: string | null
+          maintenance_end?: string | null
+          title?: string
+          message?: string
+          countdown_message?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null

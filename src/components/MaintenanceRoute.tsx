@@ -1,9 +1,9 @@
-import { useState, useEffect, ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { ReactNode, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { logger } from "@/lib/logger";
 import { MaintenanceNotice } from "@/components/MaintenanceNotice";
-import { useAuth } from "@/hooks/useAuth";
 
 interface MaintenanceSettings {
   is_enabled: boolean;
@@ -11,7 +11,7 @@ interface MaintenanceSettings {
   maintenance_end: string | null;
 }
 
-interface MaintenanceWrapperProps {
+interface MaintenanceRouteProps {
   children: ReactNode;
 }
 
@@ -46,12 +46,11 @@ const ALLOWED_ROUTES = [
   '/database-test'
 ];
 
-export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
+export const MaintenanceRoute = ({ children }: MaintenanceRouteProps) => {
   const [settings, setSettings] = useState<MaintenanceSettings | null>(cachedSettings);
   const [loading, setLoading] = useState(!cachedSettings);
   const { profile } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Optimized maintenance settings loader with caching
   const loadMaintenanceSettings = async (): Promise<MaintenanceSettings> => {
@@ -69,7 +68,7 @@ export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
     settingsPromise = (async () => {
       try {
         logger.info('Loading maintenance settings from database...');
-
+        
         // Query maintenance settings table
         const { data, error } = await supabase
           .from('maintenance_settings')
@@ -122,19 +121,43 @@ export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
     );
   };
 
+  const isMaintenanceActive = (settingsToCheck?: MaintenanceSettings | null) => {
+    const currentSettings = settingsToCheck || settings;
+    if (!currentSettings?.is_enabled) return false;
+
+    const now = new Date();
+
+    // If no start time is set, maintenance is active when enabled
+    if (!currentSettings.maintenance_start) return true;
+
+    const startTime = new Date(currentSettings.maintenance_start);
+
+    // If no end time is set, maintenance is active after start time
+    if (!currentSettings.maintenance_end) return now >= startTime;
+
+    const endTime = new Date(currentSettings.maintenance_end);
+
+    // Maintenance is active between start and end time
+    return now >= startTime && now < endTime;
+  };
+
+  const shouldBypassMaintenance = () => {
+    // Allow admin users to bypass maintenance mode
+    // But allow testing by adding ?test_maintenance=true to URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('test_maintenance') === 'true') {
+      return false; // Force showing maintenance page for testing
+    }
+
+    return profile?.role === 'admin';
+  };
+
   // Initialize settings immediately on mount
   useEffect(() => {
     const initializeSettings = async () => {
       try {
         const loadedSettings = await loadMaintenanceSettings();
         setSettings(loadedSettings);
-
-        // Check if current route should be blocked
-        if (isMaintenanceActive(loadedSettings) &&
-            !shouldBypassMaintenance() &&
-            isRouteBlocked(location.pathname)) {
-          navigate('/', { replace: true });
-        }
       } catch (error) {
         logger.error('Failed to initialize maintenance settings', error);
         // Set safe fallback
@@ -167,13 +190,6 @@ export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
           settingsPromise = null;
           const newSettings = await loadMaintenanceSettings();
           setSettings(newSettings);
-
-          // Check if current route should be blocked after settings change
-          if (isMaintenanceActive(newSettings) &&
-              !shouldBypassMaintenance() &&
-              isRouteBlocked(location.pathname)) {
-            navigate('/', { replace: true });
-          }
         }
       )
       .subscribe();
@@ -181,62 +197,10 @@ export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [settings, location.pathname, navigate]);
-
-  // Monitor route changes and block access if needed
-  useEffect(() => {
-    if (!settings || loading) return;
-
-    if (isMaintenanceActive(settings) &&
-        !shouldBypassMaintenance() &&
-        isRouteBlocked(location.pathname)) {
-      navigate('/', { replace: true });
-    }
-  }, [location.pathname, settings, loading, navigate]);
-
-  const isMaintenanceActive = (settingsToCheck?: MaintenanceSettings | null) => {
-    const currentSettings = settingsToCheck || settings;
-    if (!currentSettings?.is_enabled) return false;
-
-    const now = new Date();
-
-    // If no start time is set, maintenance is active when enabled
-    if (!currentSettings.maintenance_start) return true;
-
-    const startTime = new Date(currentSettings.maintenance_start);
-
-    // If no end time is set, maintenance is active after start time
-    if (!currentSettings.maintenance_end) return now >= startTime;
-
-    const endTime = new Date(currentSettings.maintenance_end);
-
-    // Maintenance is active between start and end time
-    return now >= startTime && now < endTime;
-  };
-
-  const shouldBypassMaintenance = () => {
-    // Allow admin users to bypass maintenance mode
-    // But allow testing by adding ?test_maintenance=true to URL
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('test_maintenance') === 'true') {
-      return false; // Force showing maintenance page for testing
-    }
-
-    return profile?.role === 'admin';
-  };
+  }, [settings]);
 
   // Show loading state while checking maintenance settings
-  // During loading, prevent any navigation to blocked routes
   if (loading) {
-    // If we're on a potentially blocked route during loading, show loading spinner
-    if (isRouteBlocked(location.pathname)) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      );
-    }
-
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -250,7 +214,7 @@ export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
   const routeBlocked = isRouteBlocked(location.pathname);
 
   // Debug logging to track maintenance state
-  console.log('🔍 MaintenanceWrapper Debug:', {
+  console.log('🔍 MaintenanceRoute Debug:', {
     pathname: location.pathname,
     maintenanceActive,
     bypassMaintenance,
@@ -261,16 +225,6 @@ export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
     loading
   });
 
-  logger.info('MaintenanceWrapper Debug:', {
-    pathname: location.pathname,
-    maintenanceActive,
-    bypassMaintenance,
-    routeBlocked,
-    settings,
-    isEnabled: settings?.is_enabled,
-    userRole: profile?.role
-  });
-
   // CRITICAL: Show maintenance notice for blocked routes during maintenance
   // This prevents the route components from rendering entirely
   if (maintenanceActive && !bypassMaintenance && routeBlocked) {
@@ -278,6 +232,6 @@ export const MaintenanceWrapper = ({ children }: MaintenanceWrapperProps) => {
     return <MaintenanceNotice />;
   }
 
-  // Show normal app content (homepage will show countdown via MaintenanceCountdown component)
+  // Show normal route content
   return <>{children}</>;
 };
