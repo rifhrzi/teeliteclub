@@ -29,13 +29,14 @@ const BLOCKED_ROUTES = [
   '/account',
   '/payment-success',
   '/finish-payment',
-  '/payment-error'
+  '/payment-error',
+  '/orders',
+  '/auth'
 ];
 
 // Routes that are always allowed (even during maintenance)
 const ALLOWED_ROUTES = [
   '/',
-  '/auth',
   '/admin',
   '/test-connection',
   '/debug-products',
