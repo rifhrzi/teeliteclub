@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isInitialLoad = true;
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -41,15 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Check if this is a new Google OAuth user
+          // Check if this is a new Google OAuth user (non-blocking)
           if (event === 'SIGNED_IN' && session?.user?.app_metadata?.provider === 'google') {
-            await handleGoogleSignIn(session.user);
+            handleGoogleSignIn(session.user);
           }
           
-          // Defer profile loading
-          setTimeout(() => {
+          // Only load profile if not initial load (to prevent double loading)
+          if (!isInitialLoad) {
             loadProfile(session.user.id);
-          }, 0);
+          }
         } else {
           setProfile(null);
         }
@@ -66,19 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadProfile(session.user.id);
       }
       setLoading(false);
+      isInitialLoad = false;
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = useCallback(async (userId: string) => {
     try {
       logger.debug('Loading user profile', { userId });
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, nama, telepon, alamat, role')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
       if (error) {
         logger.error('Failed to load user profile', { userId, error: error.message });
@@ -90,37 +93,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       logger.error('Unexpected error loading profile', { userId, error });
     }
-  };
+  }, []);
 
   const handleGoogleSignIn = async (user: User) => {
-    try {
-      // Check if profile already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!existingProfile) {
-        // Create profile for new Google user
-        const { error: profileError } = await supabase
+    // Non-blocking profile creation for Google users
+    setTimeout(async () => {
+      try {
+        // Check if profile already exists
+        const { data: existingProfile } = await supabase
           .from('profiles')
-          .insert([{
-            id: user.id,
-            email: user.email,
-            nama: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
-            role: 'user'
-          }]);
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
 
-        if (profileError) {
-          logger.error('Failed to create Google user profile', { userId: user.id, error: profileError.message });
-        } else {
-          logger.info('Google user profile created successfully', { userId: user.id });
+        if (!existingProfile) {
+          // Create profile for new Google user
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: user.id,
+              email: user.email,
+              nama: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '',
+              role: 'user'
+            }]);
+
+          if (profileError) {
+            logger.error('Failed to create Google user profile', { userId: user.id, error: profileError.message });
+          } else {
+            logger.info('Google user profile created successfully', { userId: user.id });
+            // Reload profile after creation
+            loadProfile(user.id);
+          }
         }
+      } catch (error) {
+        logger.error('Error handling Google sign-in', { userId: user.id, error });
       }
-    } catch (error) {
-      logger.error('Error handling Google sign-in', { userId: user.id, error });
-    }
+    }, 0);
   };
 
   const signInWithGoogle = async () => {
@@ -233,18 +241,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const contextValue = useMemo(() => ({
+    user,
+    session,
+    profile,
+    loading,
+    signUp,
+    signIn,
+    signInWithGoogle,
+    signOut,
+    updateProfile
+  }), [user, session, profile, loading]);
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      profile,
-      loading,
-      signUp,
-      signIn,
-      signInWithGoogle,
-      signOut,
-      updateProfile
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

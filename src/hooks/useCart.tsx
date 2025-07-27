@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -71,10 +71,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from('cart_items')
         .select(`
-          *,
+          id, quantity, ukuran, product_id, user_id,
           products!cart_items_product_id_fkey(id, name, price, image_url, gambar)
         `)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       // Transform the data to match expected structure
@@ -380,17 +381,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return items.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const contextValue = useMemo(() => ({
+    items,
+    loading,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    getCartTotal,
+    getCartItemsCount
+  }), [items, loading]);
+
   return (
-    <CartContext.Provider value={{
-      items,
-      loading,
-      addToCart,
-      updateQuantity,
-      removeFromCart,
-      clearCart,
-      getCartTotal,
-      getCartItemsCount
-    }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

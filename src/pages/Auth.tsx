@@ -80,7 +80,7 @@ const Auth = () => {
       if (error) {
         toast.error(handleAuthError(error));
       } else {
-        window.location.href = '/';
+        navigate('/', { replace: true });
       }
     } catch (error) {
       toast.error(handleAuthError(error));
