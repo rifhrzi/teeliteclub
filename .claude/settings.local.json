@@ -27,7 +27,8 @@
       "Bash(npm start)",
       "Bash(supabase functions logs:*)",
       "Bash(timeout:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(tasklist:*)"
     ],
     "deny": []
   }

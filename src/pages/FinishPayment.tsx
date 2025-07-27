@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,10 +37,12 @@ const FinishPayment = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { clearCart } = useCart();
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cartCleared, setCartCleared] = useState(false);
 
   // Get parameters from URL
   const orderId = searchParams.get('order_id');
@@ -101,6 +104,17 @@ const FinishPayment = () => {
         // Show appropriate toast based on status
         if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
           toast.success('Pembayaran berhasil dikonfirmasi!');
+          // Clear cart on successful payment
+          if (!cartCleared) {
+            try {
+              await clearCart();
+              setCartCleared(true);
+              console.log('Cart cleared after successful payment');
+            } catch (clearError) {
+              console.error('Failed to clear cart:', clearError);
+              // Don't show error to user as payment was successful
+            }
+          }
         } else if (transactionStatus === 'pending') {
           toast.info('Pembayaran sedang diproses, silakan tunggu konfirmasi.');
         } else if (['deny', 'cancel', 'expire', 'failure'].includes(transactionStatus)) {
@@ -152,6 +166,17 @@ const FinishPayment = () => {
       // Update with backend data if available
       if (data.payment_status) {
         setPaymentStatus(data.payment_status);
+        
+        // Clear cart if payment is successful and cart hasn't been cleared yet
+        if (!cartCleared && (data.payment_status.transaction_status === 'settlement' || data.payment_status.transaction_status === 'capture')) {
+          try {
+            await clearCart();
+            setCartCleared(true);
+            console.log('Cart cleared after backend verification of successful payment');
+          } catch (clearError) {
+            console.error('Failed to clear cart:', clearError);
+          }
+        }
       }
       
       if (data.order) {

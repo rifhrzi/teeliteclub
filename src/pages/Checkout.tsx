@@ -94,22 +94,31 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      // Check and refresh authentication before proceeding
+      // Validate form data first
+      if (!formData.nama_pembeli || formData.nama_pembeli.trim().length < 2) {
+        toast.error('Nama lengkap harus diisi minimal 2 karakter');
+        return;
+      }
+      if (!formData.email_pembeli || !formData.email_pembeli.includes('@')) {
+        toast.error('Email valid harus diisi');
+        return;
+      }
+      if (!formData.telepon_pembeli || formData.telepon_pembeli.length < 8) {
+        toast.error('Nomor telepon valid harus diisi');
+        return;
+      }
+      if (!formData.shipping_address || formData.shipping_address.trim().length < 10) {
+        toast.error('Alamat pengiriman harus diisi lengkap');
+        return;
+      }
+
+      // Get fresh session
       const { data: session, error: sessionError } = await supabase.auth.getSession();
       console.log('User session:', session.session?.user?.email || 'NOT LOGGED IN');
       
       if (sessionError || !session.session?.user) {
         console.error('Session error:', sessionError);
         toast.error('Silakan login terlebih dahulu');
-        navigate('/auth');
-        return;
-      }
-      
-      // Refresh session to ensure valid token
-      const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.error('Token refresh error:', refreshError);
-        toast.error('Sesi berakhir, silakan login kembali');
         navigate('/auth');
         return;
       }
@@ -150,17 +159,6 @@ const Checkout = () => {
       // Create Midtrans payment
       console.log('Calling Midtrans payment function...');
       
-      // Get current session to ensure we have a valid token
-      const { data: currentSession } = await supabase.auth.getSession();
-      if (!currentSession.session?.access_token) {
-        toast.error('Token tidak valid, silakan login kembali');
-        navigate('/auth');
-        return;
-      }
-      
-      console.log('Session token available:', !!currentSession.session.access_token);
-      console.log('Token length:', currentSession.session.access_token.length);
-      
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
         'create-midtrans-payment',
         {
@@ -176,74 +174,61 @@ const Checkout = () => {
       if (paymentError) {
         console.error('Payment error details:', paymentError);
         
-        // Handle authentication errors specifically
+        // Handle specific error types
         if (paymentError.message && paymentError.message.includes('401')) {
-          console.error('Authentication error - token may be expired');
           toast.error('Sesi berakhir, silakan login kembali');
           navigate('/auth');
           return;
         }
         
-        // Try to get the actual error response from the Edge Function
-        if (paymentError && typeof paymentError === 'object' && 'context' in paymentError) {
-          console.error('Error context:', paymentError.context);
+        if (paymentError.message && paymentError.message.includes('Insufficient stock')) {
+          toast.error('Stok produk tidak mencukupi, silakan periksa keranjang Anda');
+          navigate('/cart');
+          return;
         }
         
-        throw paymentError;
+        if (paymentError.message && paymentError.message.includes('MIDTRANS_SERVER_KEY')) {
+          toast.error('Konfigurasi pembayaran bermasalah, silakan hubungi admin');
+          return;
+        }
+        
+        // Generic error handling
+        const errorMessage = paymentError.message || 'Gagal membuat pembayaran';
+        throw new Error(errorMessage);
       }
 
-      // Clear cart after successful payment creation
-      await clearCart();
+      if (!paymentData || !paymentData.redirect_url) {
+        throw new Error('Respons pembayaran tidak valid');
+      }
+
+      // DON'T clear cart here - only clear after successful payment confirmation
+      console.log('Payment created successfully, redirecting to Midtrans...');
 
       // Redirect to Midtrans payment page
-      if (paymentData.redirect_url) {
-        window.location.href = paymentData.redirect_url;
-      } else {
-        toast.error('Gagal membuat pembayaran');
-      }
+      window.location.href = paymentData.redirect_url;
     } catch (error) {
       console.error('Error creating payment:', error);
       
-      // Handle different types of errors and redirect accordingly
-      let errorType = 'system';
+      // Handle different types of errors
       let errorMessage = 'Gagal membuat pembayaran';
       
-      if (error && typeof error === 'object') {
-        // Check if it's a network error
-        if (error.name === 'TypeError' || error.message?.includes('fetch')) {
-          errorType = 'network';
-          errorMessage = 'Koneksi bermasalah';
-        }
-        // Check if it's a timeout error
-        else if (error.message?.includes('timeout')) {
-          errorType = 'timeout';
-          errorMessage = 'Waktu habis';
-        }
-        // Check for specific payment errors
-        else if (error.message?.includes('insufficient')) {
-          errorType = 'insufficient_funds';
-          errorMessage = 'Saldo tidak mencukupi';
-        }
-        else if (error.message?.includes('validation')) {
-          errorType = 'validation';
-          errorMessage = 'Data tidak valid';
-        }
-        else if (error.message) {
-          errorMessage = error.message;
-        }
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = error.message;
       }
       
+      // Show user-friendly error message
       toast.error(errorMessage);
       
-      // Redirect to error page with details
-      const errorParams = new URLSearchParams({
-        error_type: errorType,
-        error_message: errorMessage,
+      // Log detailed error for debugging
+      console.error('Payment creation failed:', {
+        error,
+        formData,
+        itemsCount: items.length,
         timestamp: new Date().toISOString()
       });
       
-      navigate(`/payment-error?${errorParams.toString()}`);
-      return;
     } finally {
       setLoading(false);
     }
