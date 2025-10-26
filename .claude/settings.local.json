@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "permissions": {
     "allow": [
@@ -32,4 +33,38 @@
     ],
     "deny": []
   }
+=======
+{
+  "permissions": {
+    "allow": [
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run lint)",
+      "Bash(npm run:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(npx vite-bundle-analyzer:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(tsc --noEmit)",
+      "Bash(supabase link:*)",
+      "Bash(npx supabase link:*)",
+      "Bash(npx supabase projects:*)",
+      "Bash(npx supabase:*)",
+      "Bash(mv:*)",
+      "Bash(taskkill:*)",
+      "Bash(wmic:*)",
+      "Bash(supabase functions deploy:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(npm start)",
+      "Bash(supabase functions logs:*)",
+      "Bash(timeout:*)"
+    ],
+    "deny": []
+  }
+>>>>>>> c78eca0 (Update Maintenance)
 }

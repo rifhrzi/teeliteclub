@@ -6,10 +6,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+<<<<<<< HEAD
 import { ArrowLeft, Package, Calendar, CreditCard, Truck, ChevronDown, ChevronUp, RefreshCw, Eye, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Footer } from "@/components/layout/Footer";
 import { OrdersSkeleton } from "@/components/loading/OrdersSkeleton";
+=======
+import {
+  ArrowLeft,
+  Package,
+  Calendar,
+  CreditCard,
+  Truck,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Eye,
+  ExternalLink,
+  MapPin
+} from "lucide-react";
+import { toast } from "sonner";
+import { Footer } from "@/components/layout/Footer";
+import { OrdersSkeleton } from "@/components/loading/OrdersSkeleton";
+import { cn } from "@/lib/utils";
+>>>>>>> c78eca0 (Update Maintenance)
 
 interface OrderItem {
   id: string;
@@ -40,6 +60,40 @@ interface Order {
   order_items: OrderItem[];
 }
 
+<<<<<<< HEAD
+=======
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  pending: {
+    label: 'Menunggu Pembayaran',
+    className: 'bg-amber-100 text-amber-800 border border-amber-200'
+  },
+  paid: {
+    label: 'Dibayar',
+    className: 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+  },
+  processing: {
+    label: 'Diproses',
+    className: 'bg-sky-100 text-sky-700 border border-sky-200'
+  },
+  shipped: {
+    label: 'Dikirim',
+    className: 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+  },
+  delivered: {
+    label: 'Selesai',
+    className: 'bg-emerald-600 text-white'
+  },
+  cancelled: {
+    label: 'Dibatalkan',
+    className: 'bg-rose-100 text-rose-700 border border-rose-200'
+  },
+  failed: {
+    label: 'Gagal',
+    className: 'bg-rose-100 text-rose-700 border border-rose-200'
+  }
+};
+
+>>>>>>> c78eca0 (Update Maintenance)
 const Orders = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -67,6 +121,7 @@ const Orders = () => {
   };
 
   const getStatusBadge = (status: string) => {
+<<<<<<< HEAD
     switch (status) {
       case 'pending':
         return <Badge variant="secondary">Menunggu Pembayaran</Badge>;
@@ -85,6 +140,23 @@ const Orders = () => {
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+=======
+    const config = STATUS_CONFIG[status] ?? {
+      label: status,
+      className: 'bg-muted text-foreground'
+    };
+
+    return (
+      <Badge
+        className={cn(
+          "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]",
+          config.className
+        )}
+      >
+        {config.label}
+      </Badge>
+    );
+>>>>>>> c78eca0 (Update Maintenance)
   };
 
   const toggleOrderDetails = (orderId: string) => {
@@ -257,6 +329,7 @@ const Orders = () => {
   }
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <Button 
@@ -303,11 +376,71 @@ const Orders = () => {
                 <p><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</p>
                 <p><strong>Query completed:</strong> Yes</p>
               </div>
+=======
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="container mx-auto max-w-5xl px-4 py-10 sm:py-12">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground sm:w-auto"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Kembali ke Beranda
+          </Button>
+        </div>
+
+        <section className="mb-10 rounded-2xl border border-border/70 bg-card/95 p-5 shadow-sm backdrop-blur sm:rounded-3xl sm:p-6 md:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-xs font-semibold uppercase tracking-[0.3em]">
+                History Orders
+              </h1>
+            </div>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+              <Button
+                variant="outline"
+                onClick={fetchOrders}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 rounded-full border-border/80 sm:w-auto"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => navigate('/shop')}
+                className="flex w-full items-center justify-center gap-2 rounded-full sm:w-auto bg-black text-white"
+              >
+                <Package className="h-4 w-4" />
+                Shop more
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {orders.length === 0 ? (
+          <Card className="overflow-hidden rounded-2xl border border-dashed border-border/70 bg-muted/20 shadow-sm sm:rounded-3xl">
+            <CardContent className="flex flex-col items-center gap-4 px-6 py-12 text-center sm:py-16">
+              <div className="rounded-full bg-muted p-4 text-muted-foreground">
+                <Package className="h-7 w-7 sm:h-8 sm:w-8" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold text-foreground sm:text-2xl">Belum ada pesanan</h2>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Saat Anda melakukan pembelian, status dan detail pengirimannya akan muncul di sini.
+                </p>
+              </div>
+              <Button onClick={() => navigate('/shop')} className="w-full rounded-full px-6 sm:w-auto">
+                Mulai Belanja
+              </Button>
+>>>>>>> c78eca0 (Update Maintenance)
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-6">
             {orders.map((order) => (
+<<<<<<< HEAD
               <Card key={order.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -326,11 +459,47 @@ const Orders = () => {
                         {formatPrice(order.total)}
                       </div>
                       {/* Continue Payment Button for pending orders */}
+=======
+              <Card key={order.id} className="overflow-hidden rounded-2xl border border-border/60 shadow-sm sm:rounded-3xl">
+                <CardHeader className="space-y-4 border-b border-border/60 bg-muted/30 px-5 py-5 sm:px-6 sm:py-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                        Pesanan
+                      </p>
+                      <CardTitle className="text-xl text-foreground sm:text-2xl">
+                        #{order.order_number}
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-1 text-xs sm:text-sm">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(order.created_at)}
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-1 text-xs sm:text-sm">
+                          <CreditCard className="h-4 w-4" />
+                          <span className="capitalize">{order.payment_method}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-background/70 px-3 py-1 text-xs sm:text-sm">
+                          <Truck className="h-4 w-4" />
+                          {order.shipping_method === 'express' ? 'Express' : 'Reguler'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-3 text-left sm:items-end">
+                      {getStatusBadge(order.status)}
+                      <div className="text-xl font-semibold text-foreground sm:text-2xl">
+                        {formatPrice(order.total)}
+                      </div>
+>>>>>>> c78eca0 (Update Maintenance)
                       {order.status === 'pending' && (
                         <Button
                           size="sm"
                           onClick={() => handleContinuePayment(order.payment_url || null, order.order_number, order.id)}
+<<<<<<< HEAD
                           className="w-full flex items-center gap-2"
+=======
+                          className="flex w-full items-center justify-center gap-2 rounded-full px-4 sm:w-auto"
+>>>>>>> c78eca0 (Update Maintenance)
                           variant={order.payment_url ? "default" : "outline"}
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -340,6 +509,7 @@ const Orders = () => {
                     </div>
                   </div>
                 </CardHeader>
+<<<<<<< HEAD
                 <CardContent>
                   <div className="space-y-4">
                     {/* Order Summary - Always visible */}
@@ -350,23 +520,53 @@ const Orders = () => {
                           {order.order_items.length} produk
                         </span>
                       </div>
+=======
+                <CardContent className="space-y-6 px-5 py-6 sm:px-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground sm:text-sm">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                        {order.order_items.length} produk
+                      </span>
+                      {order.status === 'shipped' && order.tracking_number && (
+                        <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-indigo-700">
+                          <Truck className="h-4 w-4" />
+                          Resi: <span className="font-mono font-medium">{order.tracking_number}</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+>>>>>>> c78eca0 (Update Maintenance)
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => navigate(`/orders/${order.id}`)}
+<<<<<<< HEAD
                           className="flex items-center gap-2"
                         >
                           <Eye className="h-4 w-4" />
                           Lihat Detail
+=======
+                          className="flex w-full items-center justify-center gap-2 rounded-full border-border/70 sm:w-auto"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Detail Lengkap
+>>>>>>> c78eca0 (Update Maintenance)
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleOrderDetails(order.id)}
+<<<<<<< HEAD
                           className="flex items-center gap-2"
                         >
                           {expandedOrders.has(order.id) ? 'Sembunyikan' : 'Lihat Ringkasan'}
+=======
+                          className="flex w-full items-center justify-center gap-2 rounded-full px-4 sm:w-auto"
+                        >
+                          {expandedOrders.has(order.id) ? 'Sembunyikan Ringkasan' : 'Lihat Ringkasan'}
+>>>>>>> c78eca0 (Update Maintenance)
                           {expandedOrders.has(order.id) ? (
                             <ChevronUp className="h-4 w-4" />
                           ) : (
@@ -376,6 +576,7 @@ const Orders = () => {
                       </div>
                     </div>
 
+<<<<<<< HEAD
                     {/* Expanded Details */}
                     {expandedOrders.has(order.id) && (
                       <>
@@ -398,6 +599,52 @@ const Orders = () => {
                                   <p className="text-sm text-muted-foreground">
                                     {formatPrice(item.harga)} × {item.jumlah}
                                   </p>
+=======
+                    {expandedOrders.has(order.id) && (
+                      <div className="space-y-6">
+                        <Separator />
+
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                            Produk yang dipesan
+                          </h4>
+                          <div className="space-y-3">
+                            {order.order_items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center"
+                              >
+                                {item.product?.image_url ? (
+                                  <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-border/70 bg-background">
+                                    <img
+                                      src={item.product.image_url}
+                                      alt={item.product.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-border/70 bg-background text-muted-foreground">
+                                    <Package className="h-6 w-6" />
+                                  </div>
+                                )}
+                                <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                  <div>
+                                    <p className="font-medium text-foreground">
+                                      {item.product?.name || 'Produk tidak ditemukan'}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Ukuran: {item.ukuran} • Qty: {item.jumlah}
+                                    </p>
+                                  </div>
+                                  <div className="text-left sm:text-right">
+                                    <p className="font-medium text-foreground">
+                                      {formatPrice(item.harga * item.jumlah)}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {formatPrice(item.harga)} × {item.jumlah}
+                                    </p>
+                                  </div>
+>>>>>>> c78eca0 (Update Maintenance)
                                 </div>
                               </div>
                             ))}
@@ -406,6 +653,7 @@ const Orders = () => {
 
                         <Separator />
 
+<<<<<<< HEAD
                         {/* Order Details */}
                         <div className="grid md:grid-cols-2 gap-4 text-sm">
                           <div>
@@ -456,6 +704,55 @@ const Orders = () => {
                           </p>
                         </div>
                       </>
+=======
+                        <div className="grid gap-6 md:grid-cols-2 text-sm">
+                          <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
+                            <h5 className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                              Informasi Pembeli
+                            </h5>
+                            <div className="mt-3 space-y-2 text-foreground">
+                              <p><span className="text-muted-foreground">Nama:</span> {order.nama_pembeli}</p>
+                              <p><span className="text-muted-foreground">Email:</span> {order.email_pembeli}</p>
+                              <p><span className="text-muted-foreground">Telepon:</span> {order.telepon_pembeli}</p>
+                            </div>
+                          </div>
+                          <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
+                            <h5 className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                              Pengiriman & Pembayaran
+                            </h5>
+                            <div className="mt-3 space-y-3 text-foreground">
+                              <div className="flex items-center gap-2 text-sm">
+                                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                <span className="capitalize">{order.payment_method}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Truck className="h-4 w-4 text-muted-foreground" />
+                                <span>{order.shipping_method === 'express' ? 'Express' : 'Reguler'}</span>
+                              </div>
+                              <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                                <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                <span className="whitespace-pre-line text-foreground">{order.shipping_address}</span>
+                              </div>
+
+                              {order.status === 'shipped' && order.tracking_number && (
+                                <div className="rounded-2xl border border-indigo-200 bg-indigo-50/80 p-4 text-indigo-700">
+                                  <div className="flex items-center gap-2">
+                                    <Truck className="h-4 w-4" />
+                                    <span className="font-semibold">Nomor Resi</span>
+                                  </div>
+                                  <p className="mt-2 font-mono text-sm font-medium">
+                                    {order.tracking_number}
+                                  </p>
+                                  <p className="mt-1 text-xs text-indigo-600/80">
+                                    Gunakan nomor resi ini untuk melacak paket Anda
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+>>>>>>> c78eca0 (Update Maintenance)
                     )}
                   </div>
                 </CardContent>
@@ -470,4 +767,8 @@ const Orders = () => {
   );
 };
 
+<<<<<<< HEAD
 export default Orders;
+=======
+export default Orders;
+>>>>>>> c78eca0 (Update Maintenance)

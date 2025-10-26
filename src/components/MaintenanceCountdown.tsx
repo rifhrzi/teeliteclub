@@ -1,213 +1,68 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Clock } from "lucide-react";
-import { logger } from "@/lib/logger";
+import { useEffect, useState } from "react";
 
-interface MaintenanceSettings {
-  is_enabled: boolean;
-  maintenance_start: string | null;
-  maintenance_end: string | null;
-  title: string;
-  message: string;
-  countdown_message: string;
+const SEGMENTS = [
+  { label: "Days", key: "days" },
+  { label: "Hours", key: "hours" },
+  { label: "Minutes", key: "minutes" },
+  { label: "Seconds", key: "seconds" },
+] as const;
+
+type SegmentKey = typeof SEGMENTS[number]["key"];
+
+const getTimeParts = (target: Date) => {
+  const now = Date.now();
+  const diff = Math.max(target.getTime() - now, 0);
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  return { days, hours, minutes, seconds };
+};
+
+interface CountdownProps {
+  target: string;
+  tone?: "light" | "dark";
 }
 
-interface CountdownTime {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-}
-
-interface MaintenanceCountdownProps {
-  onMaintenanceCheck: (isActive: boolean) => void;
-}
-
-export const MaintenanceCountdown = ({ onMaintenanceCheck }: MaintenanceCountdownProps) => {
-  const [settings, setSettings] = useState<MaintenanceSettings | null>(null);
-  const [countdown, setCountdown] = useState<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [loading, setLoading] = useState(true);
+export const Countdown = ({ target, tone = "light" }: CountdownProps) => {
+  const targetDate = new Date(target);
+  const [timeLeft, setTimeLeft] = useState(() => getTimeParts(targetDate));
 
   useEffect(() => {
-    loadSettings();
-    
-    // Set up real-time subscription to maintenance settings
-    const subscription = supabase
-      .channel('maintenance_countdown_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'maintenance_settings'
-        },
-        () => {
-          loadSettings();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!settings?.maintenance_end) return;
-
     const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const endTime = new Date(settings.maintenance_end!).getTime();
-      const distance = endTime - now;
-
-      if (distance < 0) {
-        setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-
-      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      setCountdown({ days, hours, minutes, seconds });
+      setTimeLeft(getTimeParts(targetDate));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [settings?.maintenance_end]);
+  }, [targetDate]);
 
-  useEffect(() => {
-    const isActive = isMaintenanceActive();
-    onMaintenanceCheck(isActive);
-  }, [settings, onMaintenanceCheck]);
+  const primary = tone === "dark" ? "text-white" : "text-[#0A0A0A]";
+  const secondary = tone === "dark" ? "text-white/70" : "text-[#6B7280]";
 
-  const loadSettings = async () => {
-    try {
-      setLoading(true);
-      
-      // Add timeout to prevent hanging requests on mobile
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
+  
+return (
+  <div className={`flex flex-wrap justify-center items-center gap-2 sm:gap-3 text-sm sm:text-base font-medium ${primary}`}>
+    {SEGMENTS.map(({ label, key }, index) => {
+      const value = timeLeft[key as SegmentKey].toString().padStart(2, "0");
+      return (
+        <span key={label} className="flex items-center gap-2 sm:gap-3 tracking-wide">
+          <span className="flex items-baseline gap-1 sm:gap-1.5">
+            <span className="text-[24px] sm:text-[32px] font-semibold leading-none">{value}</span>
+            <span className={`text-[10px] sm:text-[11px] uppercase tracking-[0.1em] ${secondary} font-medium`}>
+              {label}
+            </span>
+          </span>
+          {index < SEGMENTS.length - 1 && (
+            <span className={`${secondary} text-xs sm:text-sm`}>|</span>
+          )}
+        </span>
       );
-      
-      const supabasePromise = supabase
-        .from('maintenance_settings')
-        .select('*')
-        .single();
+    })}
+  </div>
+);
 
-      const { data, error } = await Promise.race([supabasePromise, timeoutPromise]) as any;
-
-      if (error) {
-        console.warn('Failed to load maintenance settings:', error);
-        setSettings(null);
-        return;
-      }
-
-      setSettings(data);
-    } catch (error) {
-      console.warn('Failed to load maintenance settings:', error);
-      setSettings(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isMaintenanceActive = () => {
-    if (!settings?.is_enabled) return false;
-
-    const now = new Date();
-    
-    // If no start time is set, maintenance is active when enabled
-    if (!settings.maintenance_start) return true;
-    
-    const startTime = new Date(settings.maintenance_start);
-    
-    // If no end time is set, maintenance is active after start time
-    if (!settings.maintenance_end) return now >= startTime;
-    
-    const endTime = new Date(settings.maintenance_end);
-    
-    // Maintenance is active between start and end time
-    return now >= startTime && now < endTime;
-  };
-
-  const isCountdownActive = () => {
-    if (!settings?.maintenance_end) return false;
-    const now = new Date().getTime();
-    const endTime = new Date(settings.maintenance_end).getTime();
-    return endTime > now;
-  };
-
-  // Show nothing if still loading, no settings, or maintenance not active
-  if (loading || !settings || !isMaintenanceActive()) {
-    return null;
-  }
-
-  return (
-    <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-white max-w-md mx-auto">
-      <CardContent className="p-6 text-center space-y-4">
-        <div className="flex items-center justify-center gap-2">
-          <Clock className="w-5 h-5" />
-          <h3 className="text-lg font-semibold">
-            {settings.title}
-          </h3>
-        </div>
-        
-        <p className="text-white/90 text-sm">
-          {settings.message}
-        </p>
-
-        {settings.maintenance_end && isCountdownActive() && (
-          <div className="space-y-3">
-            <p className="text-white/80 text-sm font-medium">
-              {settings.countdown_message}
-            </p>
-            
-            <div className="grid grid-cols-4 gap-2">
-              <div className="text-center">
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2">
-                  <div className="text-xl font-bold">{countdown.days}</div>
-                </div>
-                <div className="text-xs text-white/80 mt-1">Hari</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2">
-                  <div className="text-xl font-bold">{countdown.hours}</div>
-                </div>
-                <div className="text-xs text-white/80 mt-1">Jam</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2">
-                  <div className="text-xl font-bold">{countdown.minutes}</div>
-                </div>
-                <div className="text-xs text-white/80 mt-1">Menit</div>
-              </div>
-              
-              <div className="text-center">
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2">
-                  <div className="text-xl font-bold">{countdown.seconds}</div>
-                </div>
-                <div className="text-xs text-white/80 mt-1">Detik</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {settings.maintenance_end && (
-          <div className="text-xs text-white/70">
-            Estimasi tersedia: {new Date(settings.maintenance_end).toLocaleString('id-ID', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
 };
+
+export const MaintenanceCountdown = Countdown;
